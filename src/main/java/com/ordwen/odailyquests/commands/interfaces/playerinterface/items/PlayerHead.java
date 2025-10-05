@@ -88,7 +88,8 @@ public class PlayerHead extends InterfaceItemGetter {
 
     public ItemStack getPlayerHead(Player player) {
         final SkullMeta clone = this.meta.clone();
-        clone.setDisplayName(TextFormatter.format(player, clone.getDisplayName()));
+        clone.setDisplayName(TextFormatter.format(player, clone.getDisplayName()
+                .replace("%player_name%", player.getName())));
 
         clone.setOwningPlayer(player);
         final List<String> lore = clone.getLore();
