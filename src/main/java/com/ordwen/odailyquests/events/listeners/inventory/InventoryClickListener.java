@@ -15,7 +15,6 @@ import org.bukkit.entity.Villager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
@@ -51,17 +50,12 @@ public class InventoryClickListener extends ClickableChecker implements Listener
         }
 
         final ItemStack clickedItem = event.getCurrentItem();
-        Debugger.write("Clicked item: " + (clickedItem != null ? clickedItem.getType().name() : "null"));
-        Debugger.write("Clicked item amount: " + (clickedItem != null ? clickedItem.getAmount() : "null"));
-        Debugger.write("Cursor item: " + (event.getCursor() != null ? event.getCursor().getType().name() : "null"));
-        Debugger.write("Cursor item amount: " + (event.getCursor() != null ? event.getCursor().getAmount() : "null"));
-
         if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
 
         if (handleCustomFurnaceResult(event, action, clickedItem, player)) return;
 
         final QuestContext.Builder contextBuilder = new QuestContext.Builder(player).clickedItem(clickedItem);
-        if (handleVillagerTrading(event, clickedItem, contextBuilder)) {
+        if (handleVillagerTrading(event, contextBuilder)) {
             return;
         }
 
@@ -72,14 +66,6 @@ public class InventoryClickListener extends ClickableChecker implements Listener
         }
     }
 
-    /**
-     * Handle player interface click events.
-     *
-     * @param event       the inventory click event.
-     * @param clickedItem the clicked item.
-     * @param player      the player who clicked the item.
-     * @return true if the event is handled, false otherwise.
-     */
     private boolean handlePlayerInterfaceClick(InventoryClickEvent event, ItemStack clickedItem, Player player) {
         if (event.getAction() == InventoryAction.HOTBAR_SWAP) return true;
         if (playerQuestsInterface.isFillItem(clickedItem)) return true;
@@ -90,190 +76,161 @@ public class InventoryClickListener extends ClickableChecker implements Listener
         return handleCloseItem(clickedItem, player);
     }
 
-    /**
-     * If the clicked item is a villager trade result, handle the trade event.
-     *
-     * @param event          the inventory click event.
-     * @param clickedItem    the clicked item.
-     * @param contextBuilder the quest context builder.
-     * @return true if the item is a villager trade result, false otherwise.
-     */
-    private boolean handleVillagerTrading(InventoryClickEvent event, ItemStack clickedItem, QuestContext.Builder contextBuilder) {
-        if (event.getInventory().getType() == InventoryType.MERCHANT && event.getSlotType() == InventoryType.SlotType.RESULT) {
-            Debugger.write("Detected villager trade action");
-            final MerchantInventory merchantInventory = (MerchantInventory) event.getClickedInventory();
-            if (merchantInventory == null) {
-                Debugger.write("Merchant Inventory is null");
-                return false;
-            }
+    /* ======================  VILLAGER TRADE (refactor)  ====================== */
 
-            if (event.getClickedInventory().getHolder() instanceof Villager villager) {
-                int amount = getTradeAmount(event, clickedItem, merchantInventory);
-                Debugger.write("Trade amount is " + amount);
-                if (amount == 0) {
-                    return true;
-                }
+    private boolean handleVillagerTrading(InventoryClickEvent event, QuestContext.Builder contextBuilder) {
+        if (!isVillagerResultSlot(event)) return false;
 
-                final MerchantRecipe selectedRecipe = merchantInventory.getSelectedRecipe();
-                if (selectedRecipe != null) {
-                    contextBuilder.villagerTrade(villager, selectedRecipe, amount);
-                    processQuestCompletion(contextBuilder.build());
-                }
-            }
-
+        Debugger.write("Detected villager trade action");
+        final MerchantInventory merchantInventory = (MerchantInventory) event.getClickedInventory();
+        if (merchantInventory == null) {
+            Debugger.write("Merchant Inventory is null");
             return true;
         }
-        return false;
+
+        if (event.getClickedInventory().getHolder() instanceof Villager villager) {
+            processVillagerTrade(event, merchantInventory, villager, contextBuilder);
+        }
+        return true;
     }
 
-    /**
-     * If the clicked item is a custom furnace result, handle the extraction event.
-     * The associated configuration must be enabled.
-     *
-     * @param event       the inventory click event.
-     * @param action      the inventory action.
-     * @param clickedItem the clicked item.
-     * @param player      the player who clicked the item.
-     * @return true if the item is a custom furnace result, false otherwise.
-     */
-    private boolean handleCustomFurnaceResult(InventoryClickEvent event, InventoryAction action, ItemStack clickedItem, Player player) {
-        if (CustomFurnaceResults.isEnabled()) {
+    private boolean isVillagerResultSlot(InventoryClickEvent event) {
+        return event.getInventory().getType() == InventoryType.MERCHANT
+                && event.getSlotType() == InventoryType.SlotType.RESULT;
+    }
 
-            final InventoryType inventoryType = event.getInventory().getType();
+    private void processVillagerTrade(InventoryClickEvent event, MerchantInventory merchantInventory, Villager villager, QuestContext.Builder contextBuilder) {
+        final Merchant merchant = merchantInventory.getMerchant();
+        final MerchantRecipe selectedRecipe = merchantInventory.getSelectedRecipe();
 
-            if (inventoryType == InventoryType.FURNACE
-                    || inventoryType == InventoryType.BLAST_FURNACE
-                    || inventoryType == InventoryType.SMOKER) {
+        if (selectedRecipe == null) {
+            Debugger.write("Merchant or selected recipe is null");
+            return;
+        }
 
-                if (event.getSlotType() != InventoryType.SlotType.RESULT) return true;
+        final int perTradeResult = Math.max(1, selectedRecipe.getResult().getAmount());
+        final int idx = findRecipeIndex(merchant, selectedRecipe);
 
-                int amount;
-                switch (action) {
-                    case PICKUP_HALF -> amount = (int) Math.ceil(clickedItem.getAmount() / 2.0);
-                    case PICKUP_ONE, DROP_ONE_SLOT -> amount = 1;
-                    case MOVE_TO_OTHER_INVENTORY -> {
-                        int max = clickedItem.getAmount();
-                        amount = Math.min(max, fits(clickedItem, player.getInventory().getStorageContents()));
-                    }
-                    default -> amount = clickedItem.getAmount();
+        if (idx < 0) {
+            Debugger.write("Cannot find selected recipe index in merchant list; fallback per click.");
+            contextBuilder.villagerTrade(villager, selectedRecipe, perTradeResult);
+            processQuestCompletion(contextBuilder.build());
+            return;
+        }
+
+        final int beforeUses = merchant.getRecipe(idx).getUses();
+        Debugger.write("[TradeDelta] Before uses=" + beforeUses
+                + ", perTradeResult=" + perTradeResult
+                + ", click=" + event.getClick()
+                + ", action=" + event.getAction());
+
+        scheduleDeltaProgress(merchant, idx, beforeUses, perTradeResult, villager, selectedRecipe, contextBuilder);
+    }
+
+    private void scheduleDeltaProgress(Merchant merchant, int idx, int beforeUses, int perTradeResult, Villager villager, MerchantRecipe selectedRecipe, QuestContext.Builder contextBuilder) {
+        Bukkit.getScheduler().runTask(ODailyQuests.INSTANCE, () -> {
+            try {
+                final MerchantRecipe afterRec = merchant.getRecipe(idx);
+                final int afterUses = afterRec.getUses();
+                final int deltaTrades = Math.max(0, afterUses - beforeUses);
+                Debugger.write("[TradeDelta] After uses=" + afterUses + " -> deltaTrades=" + deltaTrades);
+
+                if (deltaTrades == 0) {
+                    Debugger.write("[TradeDelta] No trades executed (delta=0). No quest progress.");
+                    return;
                 }
 
-                if (amount == 0) return true;
+                final int amount = deltaTrades * perTradeResult;
+                Debugger.write("[TradeDelta] Final quest amount=" + amount
+                        + " (deltaTrades=" + deltaTrades + " * perTradeResult=" + perTradeResult + ")");
 
-                final CustomFurnaceExtractEvent customFurnaceExtractEvent = new CustomFurnaceExtractEvent(player, clickedItem, amount);
-                Bukkit.getServer().getPluginManager().callEvent(customFurnaceExtractEvent);
-
-                return true;
+                contextBuilder.villagerTrade(villager, selectedRecipe, amount);
+                processQuestCompletion(contextBuilder.build());
+            } catch (Exception e) {
+                Debugger.write("[TradeDelta] ERROR while reading after-uses: " + e.getMessage());
+                contextBuilder.villagerTrade(villager, selectedRecipe, perTradeResult);
+                processQuestCompletion(contextBuilder.build());
             }
-        }
-        return false;
+        });
     }
 
-    /**
-     * Calculate the number of traded items from the villager trade result slot.
-     * Takes into account single click vs bulk actions (Shift-click, Ctrl-click, hotbar move).
-     *
-     * @param event             the inventory click event
-     * @param clickedItem       the clicked item in the result slot
-     * @param merchantInventory the merchant inventory
-     * @return the total number of result items the player will actually receive
-     */
-    private int getTradeAmount(InventoryClickEvent event, ItemStack clickedItem, MerchantInventory merchantInventory) {
-        int perTradeResult = clickedItem.getAmount();
-        Debugger.write("Per trade result amount is " + perTradeResult);
-        if (perTradeResult <= 0) return 0;
+    /* ======================  FURNACE  ====================== */
 
-        final ClickType click = event.getClick();
-        Debugger.write("Click type is " + click.name());
-        final InventoryAction action = event.getAction();
-        Debugger.write("Inventory action is " + action.name());
+    private boolean handleCustomFurnaceResult(InventoryClickEvent event, InventoryAction action, ItemStack clickedItem, Player player) {
+        if (!CustomFurnaceResults.isEnabled()) return false;
 
-        boolean bulk = (click == ClickType.SHIFT_LEFT || click == ClickType.SHIFT_RIGHT
-                || action == InventoryAction.MOVE_TO_OTHER_INVENTORY
-                || action == InventoryAction.HOTBAR_MOVE_AND_READD);
-
-        Debugger.write("Bulk action is " + bulk);
-
-        if (!bulk) {
-            // simple click: only one trade
-            return perTradeResult;
+        final InventoryType inventoryType = event.getInventory().getType();
+        if (inventoryType != InventoryType.FURNACE
+                && inventoryType != InventoryType.BLAST_FURNACE
+                && inventoryType != InventoryType.SMOKER) {
+            return false;
         }
 
-        int tradesPossible = getMaxTradesPossible(merchantInventory);
-        Debugger.write("Max trades possible is " + tradesPossible);
-        if (tradesPossible <= 0) return 0;
+        if (event.getSlotType() != InventoryType.SlotType.RESULT) return true;
 
-        int capacityItems = fits(clickedItem, event.getView().getBottomInventory().getStorageContents());
-        Debugger.write("Capacity in player inventory is " + capacityItems);
-        if (capacityItems <= 0) return 0;
+        int amount;
+        switch (action) {
+            case PICKUP_HALF -> amount = (int) Math.ceil(clickedItem.getAmount() / 2.0);
+            case PICKUP_ONE, DROP_ONE_SLOT -> amount = 1;
+            case MOVE_TO_OTHER_INVENTORY -> {
+                int max = clickedItem.getAmount();
+                amount = Math.min(max, fits(clickedItem, player.getInventory().getStorageContents()));
+            }
+            default -> amount = clickedItem.getAmount();
+        }
 
-        int itemsIfUnlimitedSpace = tradesPossible * perTradeResult;
-        Debugger.write("Items if unlimited space is " + itemsIfUnlimitedSpace);
+        if (amount == 0) return true;
 
-        return Math.min(itemsIfUnlimitedSpace, capacityItems);
+        final CustomFurnaceExtractEvent customFurnaceExtractEvent = new CustomFurnaceExtractEvent(player, clickedItem, amount);
+        Bukkit.getServer().getPluginManager().callEvent(customFurnaceExtractEvent);
+
+        return true;
     }
 
-    /**
-     * Calculate the maximum number of trades that can be executed
-     * with the current recipe, based on recipe uses left and the
-     * available input ingredients in the merchant inventory.
-     *
-     * @param inv the merchant inventory
-     * @return the maximum number of trades possible
-     */
-    private int getMaxTradesPossible(MerchantInventory inv) {
-        final MerchantRecipe recipe = inv.getSelectedRecipe();
-        if (recipe == null) return 0;
+    /* ======================  RECIPE MATCHING  ====================== */
 
-        int usesLeft = recipe.getMaxUses() - recipe.getUses();
-        if (usesLeft <= 0) return 0;
-
-        final List<ItemStack> reqs = recipe.getIngredients();
-        final ItemStack req1 = !reqs.isEmpty() ? reqs.get(0) : null;
-        final ItemStack req2 = reqs.size() >= 2 ? reqs.get(1) : null;
-
-        final ItemStack in1 = inv.getItem(0);
-        final ItemStack in2 = inv.getItem(1);
-
-        int byIng1 = getIngredientCount(req1, in1, in2);
-        int byIng2 = getIngredientCount(req2, in1, in2);
-
-        int byIngredients = (byIng1 == Integer.MAX_VALUE && byIng2 == Integer.MAX_VALUE)
-                ? usesLeft
-                : Math.min(byIng1, byIng2);
-
-        return Math.min(byIngredients, usesLeft);
+    private int findRecipeIndex(Merchant merchant, MerchantRecipe target) {
+        final List<MerchantRecipe> list = merchant.getRecipes();
+        for (int i = 0; i < list.size(); i++) {
+            final MerchantRecipe r = list.get(i);
+            if (sameRecipe(r, target)) return i;
+        }
+        return -1;
     }
 
-    /**
-     * Calculate how many trades can be done with a specific required ingredient.
-     * Checks both input slots and returns the number of times this ingredient
-     * can satisfy the recipe requirement.
-     *
-     * @param required the required ingredient for the recipe
-     * @param in1      the first input slot of the merchant inventory
-     * @param in2      the second input slot of the merchant inventory
-     * @return the maximum number of trades possible with this ingredient,
-     *         or {@code Integer.MAX_VALUE} if the ingredient is not required
-     */
-    private int getIngredientCount(ItemStack required, ItemStack in1, ItemStack in2) {
-        if (required == null || required.getType() == Material.AIR) return Integer.MAX_VALUE;
+    private boolean sameRecipe(MerchantRecipe a, MerchantRecipe b) {
+        if (a == b) return true;
+        if (a == null || b == null) return false;
 
-        int have = 0;
-        if (in1 != null && in1.isSimilar(required)) have = in1.getAmount();
-        else if (in2 != null && in2.isSimilar(required)) have = in2.getAmount();
+        if (areDifferentItems(a.getResult(), b.getResult())) return false;
 
-        if (have <= 0) return 0;
-        return have / Math.max(1, required.getAmount());
+        final List<ItemStack> ia = a.getIngredients();
+        final List<ItemStack> ib = b.getIngredients();
+        if (ia.size() != ib.size()) return false;
+
+        for (int i = 0; i < ia.size(); i++) {
+            if (areDifferentItems(ia.get(i), ib.get(i))) return false;
+        }
+        return true;
     }
 
-    /**
-     * Check if the clicked item is a close item. If so, close the player's inventory.
-     *
-     * @param clickedItem the clicked item.
-     * @param player      the player who clicked the item.
-     * @return true if the item is a close item, false otherwise.
-     */
+    private boolean areDifferentItems(ItemStack x, ItemStack y) {
+        return !areSameItem(x, y);
+    }
+
+    private boolean areSameItem(ItemStack x, ItemStack y) {
+        if (x == y) return true;
+        if (x == null || y == null) return false;
+        try {
+            return x.isSimilar(y) && x.getAmount() == y.getAmount();
+        } catch (Exception e) {
+            Debugger.write("[areSameItem] ERROR while checking item equality: " + e);
+            return false;
+        }
+    }
+
+    /* ======================  UI items  ====================== */
+
     private boolean handleCloseItem(ItemStack clickedItem, Player player) {
         if (playerQuestsInterface.isCloseItem(clickedItem)) {
             player.closeInventory();
@@ -282,13 +239,6 @@ public class InventoryClickListener extends ClickableChecker implements Listener
         return false;
     }
 
-    /**
-     * Check if the clicked item is a player command item. If so, execute associated commands as player.
-     *
-     * @param player the player who clicked the item.
-     * @param slot   the slot of the clicked item.
-     * @return true if the item is a player command item, false otherwise.
-     */
     private boolean handlePlayerCommandItem(Player player, int slot) {
         if (playerQuestsInterface.isPlayerCommandItem(slot)) {
             for (String cmd : playerQuestsInterface.getPlayerCommands(slot)) {
@@ -299,13 +249,6 @@ public class InventoryClickListener extends ClickableChecker implements Listener
         return false;
     }
 
-    /**
-     * Check if the clicked item is a console command item. If so, execute associated commands.
-     *
-     * @param player the player who clicked the item.
-     * @param slot   the slot of the clicked item.
-     * @return true if the item is a console command item, false otherwise.
-     */
     private boolean handleConsoleCommandItem(Player player, int slot) {
         if (playerQuestsInterface.isConsoleCommandItem(slot)) {
             for (String cmd : playerQuestsInterface.getConsoleCommands(slot)) {

@@ -15,7 +15,7 @@ import com.ordwen.odailyquests.events.restart.RestartHandler;
 import com.ordwen.odailyquests.externs.IntegrationsManager;
 import com.ordwen.odailyquests.commands.admin.AdminCommands;
 import com.ordwen.odailyquests.commands.player.PlayerCommands;
-import com.ordwen.odailyquests.commands.admin.ReloadService;
+import com.ordwen.odailyquests.reload.ReloadService;
 import com.ordwen.odailyquests.commands.admin.AdminCompleter;
 import com.ordwen.odailyquests.commands.player.PlayerCompleter;
 import com.ordwen.odailyquests.commands.interfaces.InterfacesManager;
@@ -297,7 +297,7 @@ public final class ODailyQuests extends JavaPlugin {
                     PluginLogger.warn("A new stable update is available!");
                     PluginLogger.warn("Current snapshot version: " + currentVersion + ", Stable version: " + version);
                     PluginLogger.warn("Consider updating to the latest stable release:");
-                    PluginLogger.warn("https://www.spigotmc.org/resources/odailyquests.100990/");
+                    PluginLogger.warn("https://modrinth.com/plugin/odailyquests");
                 }
                 return;
             }
@@ -308,7 +308,7 @@ public final class ODailyQuests extends JavaPlugin {
                 PluginLogger.warn("A new update is available !");
                 PluginLogger.warn("Current version : " + currentVersion + ", Available version : " + version);
                 PluginLogger.warn("Please download the latest version:");
-                PluginLogger.warn("https://www.spigotmc.org/resources/odailyquests.100990/");
+                PluginLogger.warn("https://modrinth.com/plugin/odailyquests");
             }
         });
     }

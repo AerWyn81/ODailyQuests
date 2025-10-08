@@ -5,7 +5,7 @@ api-version: 1.18
 prefix: "O'DailyQuests"
 authors: [ Ordwen ]
 description: Add more objectives and dynamize your server !
-website: https://www.spigotmc.org/resources/odailyquests-daily-quests-plugin-1-16-1-18.100990/
+website: https://modrinth.com/plugin/odailyquests
 softdepend: [ Vault, TokenManager, Citizens, FancyNpcs, PlaceholderAPI, PlayerPoints, MythicMobs, EliteMobs, WildStacker, RoseStacker, Multiverse-Core, MyWorlds, HeadDatabase, Oraxen, ItemsAdder, Nexo, CoinsEngine, Towny, PyroFishingPro, Votifier, NuVotifier, KGenerators, CustomCrops, CustomFishing, EvenMoreFish, eco, ExcellentCrates ]
 
 libraries:

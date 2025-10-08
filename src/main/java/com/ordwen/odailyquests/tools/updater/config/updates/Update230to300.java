@@ -7,6 +7,8 @@ import org.bukkit.configuration.ConfigurationSection;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 
 public class Update230to300 extends ConfigUpdater {
 
@@ -55,6 +57,7 @@ public class Update230to300 extends ConfigUpdater {
         replaceInterfaceNames();
         replaceNPCNames();
         renameQuestFiles();
+        cleanupCategoryRewards();
 
         updateVersion(version);
     }
@@ -163,6 +166,37 @@ public class Update230to300 extends ConfigUpdater {
                     PluginLogger.error("Failed to rename " + file.getName());
                 }
             }
+        }
+    }
+
+    private void cleanupCategoryRewards() {
+        final ConfigurationSection rewards = config.getConfigurationSection("categories_rewards");
+        if (rewards == null) return;
+
+        int kept = 0;
+
+        for (String cat : new HashSet<>(rewards.getKeys(false))) {
+            final ConfigurationSection catSec = rewards.getConfigurationSection(cat);
+            if (catSec == null) {
+                rewards.set(cat, null);
+                continue;
+            }
+
+            final boolean enabled = catSec.getBoolean("enabled", true);
+
+            if (!enabled) {
+                rewards.set(cat, null);
+            } else {
+                if (catSec.contains("enabled")) {
+                    catSec.set("enabled", null);
+                }
+                kept++;
+            }
+        }
+
+        if (kept == 0) {
+            config.set("categories_rewards", new ArrayList<>());
+            PluginLogger.warn("No active category rewards found. Set categories_rewards to an empty list [] to avoid load errors.");
         }
     }
 }
