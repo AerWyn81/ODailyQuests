@@ -14,6 +14,7 @@ Need help or want to share feedback? [Join our Discord](<https://discord.gg/Q8sw
 
 ## 🔗 Downloads
 - 📥 **Spigot resource page**: [O'DailyQuests on SpigotMC](<https://www.spigotmc.org/resources/odailyquests-daily-quests-plugin-1-16-1-19.100990/>)
+- 📥 **Modrinth resource page**: [O'DailyQuests on Modrinth](<https://modrinth.com/plugin/odailyquests>)
 - 🧩 **Addons**:
   - [PyroFishingPro Support](<https://github.com/Ordwen/ODQ-PyroFishingPro/releases>)
 
