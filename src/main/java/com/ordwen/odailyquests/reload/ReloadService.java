@@ -1,4 +1,4 @@
-package com.ordwen.odailyquests.commands.admin;
+package com.ordwen.odailyquests.reload;
 
 import com.ordwen.odailyquests.ODailyQuests;
 import com.ordwen.odailyquests.configuration.ConfigFactory;
@@ -67,12 +67,15 @@ public class ReloadService {
         try {
             /* load files */
             plugin.getFilesManager().load();
+            ODQReloadEvent.call(plugin, ReloadPhase.FILES_LOADED);
 
             /* load configurations */
             ConfigFactory.registerConfigs(plugin.getFilesManager());
+            ODQReloadEvent.call(plugin, ReloadPhase.CONFIGS_LOADED);
 
             /* load database */
             plugin.getDatabaseManager().load();
+            ODQReloadEvent.call(plugin, ReloadPhase.DATABASE_LOADED);
 
             /* load quests & interface */
             if ((!ItemsAdderEnabled.isEnabled() || ItemsAdderEnabled.isLoaded())
@@ -81,11 +84,19 @@ public class ReloadService {
 
                 categoriesLoader.loadCategories();
                 plugin.getInterfacesManager().initAllObjects();
+                ODQReloadEvent.call(plugin, ReloadPhase.CONTENT_LOADED);
             }
 
             saveConnectedPlayerQuests();
-            ODailyQuests.morePaperLib.scheduling().globalRegionalScheduler().runDelayed(this::loadConnectedPlayerQuests, 20L);
-        } catch (IllegalStateException e) {
+            ODQReloadEvent.call(plugin, ReloadPhase.PLAYERS_SAVED);
+
+            ODailyQuests.morePaperLib.scheduling().globalRegionalScheduler().runDelayed(() -> {
+                loadConnectedPlayerQuests();
+                ODQReloadEvent.call(plugin, ReloadPhase.PLAYERS_LOADED);
+            }, 20L);
+
+            ODQReloadEvent.call(plugin, ReloadPhase.RELOAD_COMPLETE);
+        } catch (Exception e) {
             PluginLogger.error("An error occurred while reloading the plugin. Please check the logs for details.");
         }
     }
