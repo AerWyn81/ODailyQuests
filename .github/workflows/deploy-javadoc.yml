@@ -27,42 +27,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Set up JDK 21 (Temurin)
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
-          cache: gradle
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Verify Java installation
-        run: |
-          echo "JAVA_HOME is $JAVA_HOME"
-          java -version
-
-      - name: Force Gradle Daemon to use Java 21
-        run: |
-          echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
-          export JAVA_HOME="${JAVA_HOME}"
-          export PATH="${JAVA_HOME}/bin:$PATH"
-          echo "PATH updated -> $PATH"
-          java -version
-          ./gradlew --version
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}
+      - name: Make Gradle Wrapper executable
+        run: chmod +x ./gradlew
 
       - name: Generate Javadoc
-        run: |
-          export JAVA_HOME="${JAVA_HOME}"
-          export PATH="${JAVA_HOME}/bin:$PATH"
-          ./gradlew clean javadoc --no-daemon --stacktrace
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}
+        run: ./gradlew javadoc
 
       - name: Install SSH client
-        run: sudo apt-get install -y openssh-client sshpass
+        run: sudo apt-get install -y openssh-client
 
       - name: Deploy Javadoc via SCP
         env:
@@ -74,6 +52,5 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           echo "StrictHostKeyChecking no" >> ~/.ssh/config
-          echo "Uploading to $FTP_HOST:$FTP_TARGET_PATH ..."
-          sshpass -p "$FTP_PASSWORD" scp -o StrictHostKeyChecking=no -P $FTP_PORT -r build/docs/javadoc/* \
-            "$FTP_USERNAME@$FTP_HOST:$FTP_TARGET_PATH"
+
+          sshpass -p "$FTP_PASSWORD" scp -o StrictHostKeyChecking=no -P $FTP_PORT -r build/docs/javadoc/* $FTP_USERNAME@$FTP_HOST:$FTP_TARGET_PATH
