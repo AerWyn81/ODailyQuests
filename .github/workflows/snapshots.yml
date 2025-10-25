@@ -27,10 +27,14 @@ jobs:
           git fetch --no-tags --prune --unshallow || true
           git fetch --no-tags --prune origin ${{ env.BASE_BRANCH }} --depth=0 || true
 
-      - uses: actions/setup-java@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Force Gradle to use Java 21
+        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
 
       - name: Compute meta (version & sha)
         id: meta
@@ -50,12 +54,6 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-
-      - name: Purge Oraxen metadata cache
-        run: |
-          echo "Cleaning Gradle cache for io.th0rgal:oraxen..."
-          rm -rf ~/.gradle/caches/modules-2/files-2.1/io.th0rgal/oraxen
-          rm -rf ~/.gradle/caches/modules-2/metadata-*/descriptors/io.th0rgal/oraxen
 
       - name: Build (snapshot, shadowJar)
         run: ./gradlew clean shadowJar -x test

@@ -33,14 +33,11 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Force Gradle to use Java 21
+        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
+
       - name: Make Gradle Wrapper executable
         run: chmod +x ./gradlew
-
-      - name: Purge Oraxen metadata cache
-        run: |
-          echo "Cleaning Gradle cache for io.th0rgal:oraxen..."
-          rm -rf ~/.gradle/caches/modules-2/files-2.1/io.th0rgal/oraxen
-          rm -rf ~/.gradle/caches/modules-2/metadata-*/descriptors/io.th0rgal/oraxen
 
       - name: Generate Javadoc
         run: ./gradlew javadoc
