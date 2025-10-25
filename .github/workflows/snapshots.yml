@@ -27,14 +27,27 @@ jobs:
           git fetch --no-tags --prune --unshallow || true
           git fetch --no-tags --prune origin ${{ env.BASE_BRANCH }} --depth=0 || true
 
-      - name: Set up JDK
+      - name: Set up JDK 21 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
 
-      - name: Force Gradle to use Java 21
-        run: echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
+      - name: Verify Java installation
+        run: |
+          echo "JAVA_HOME is $JAVA_HOME"
+          java -version
+
+      - name: Enforce Java 21 for Gradle daemon
+        run: |
+          # Optionnel: aussi écrire la propriété (utile pour certains plugins)
+          echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
+          # Forcer le PATH pour que gradlew démarre avec ce JDK
+          export JAVA_HOME="${JAVA_HOME}"
+          export PATH="${JAVA_HOME}/bin:$PATH"
+          java -version
+          ./gradlew --version
 
       - name: Compute meta (version & sha)
         id: meta
@@ -56,7 +69,10 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build (snapshot, shadowJar)
-        run: ./gradlew clean shadowJar -x test
+        run: |
+          export JAVA_HOME="${JAVA_HOME}"
+          export PATH="${JAVA_HOME}/bin:$PATH"
+          ./gradlew clean --refresh-dependencies shadowJar -x test --no-daemon --stacktrace
         env:
           ORG_GRADLE_PROJECT_version: ${{ steps.meta.outputs.version }}
 
