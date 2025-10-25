@@ -51,6 +51,12 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Purge Oraxen metadata cache
+        run: |
+          echo "Cleaning Gradle cache for io.th0rgal:oraxen..."
+          rm -rf ~/.gradle/caches/modules-2/files-2.1/io.th0rgal/oraxen
+          rm -rf ~/.gradle/caches/modules-2/metadata-*/descriptors/io.th0rgal/oraxen
+
       - name: Build (snapshot, shadowJar)
         run: ./gradlew clean shadowJar -x test
         env:

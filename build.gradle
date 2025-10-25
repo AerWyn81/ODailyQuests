@@ -15,10 +15,6 @@ if (ciVersion != null && !ciVersion.trim().isEmpty()) {
     println "Using local default version: ${version}"
 }
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
     /* database management */
     compileOnly 'com.zaxxer:HikariCP:5.0.1'
