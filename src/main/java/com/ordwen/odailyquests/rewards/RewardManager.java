@@ -121,7 +121,20 @@ public class RewardManager {
             ODailyQuests.morePaperLib
                     .scheduling()
                     .globalRegionalScheduler()
-                    .run(() -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), cmd));
+                    .run(() -> {
+                        try {
+                            Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                        } catch (Exception e) {
+                            Debugger.write("[RewardCmd] Error while executing command: " + cmd);
+                            if (e.getMessage() != null) {
+                                Debugger.write(e.getMessage());
+                            }
+                            final String msg = QuestsMessages.REWARD_COMMAND_ERROR.toString();
+                            if (msg != null) {
+                                player.sendMessage(msg.replace("%command%", cmd));
+                            }
+                        }
+                    });
         }
         sendMsg(player, QuestsMessages.REWARD_COMMAND);
     }
