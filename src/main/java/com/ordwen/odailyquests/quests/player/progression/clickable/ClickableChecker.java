@@ -1,9 +1,9 @@
 package com.ordwen.odailyquests.quests.player.progression.clickable;
 
 import com.ordwen.odailyquests.api.ODailyQuestsAPI;
+import com.ordwen.odailyquests.configuration.essentials.Debugger;
 import com.ordwen.odailyquests.configuration.functionalities.CompleteOnlyOnClick;
 import com.ordwen.odailyquests.configuration.functionalities.DisabledWorlds;
-import com.ordwen.odailyquests.enums.QuestsMessages;
 import com.ordwen.odailyquests.quests.player.progression.PlayerProgressor;
 import com.ordwen.odailyquests.quests.player.progression.Progression;
 import com.ordwen.odailyquests.quests.player.progression.clickable.commands.*;
@@ -26,7 +26,7 @@ public abstract class ClickableChecker extends PlayerProgressor {
         final ItemStack clickedItem = context.getClickedItem();
         final Villager villager = context.getVillager();
 
-        if (isWorldDisabled(player)) return;
+        if (isWorldDisabled(player.getWorld().getName())) return;
 
         final Map<AbstractQuest, Progression> playerQuests = ODailyQuestsAPI.getPlayerQuests(player.getName()).getQuests();
         for (Map.Entry<AbstractQuest, Progression> entry : playerQuests.entrySet()) {
@@ -45,10 +45,9 @@ public abstract class ClickableChecker extends PlayerProgressor {
     /**
      * Checks if the world is disabled for quest processing.
      */
-    private boolean isWorldDisabled(Player player) {
-        if (DisabledWorlds.isWorldDisabled(player.getWorld().getName())) {
-            String msg = QuestsMessages.WORLD_DISABLED.getMessage(player);
-            if (msg != null) player.sendMessage(msg);
+    private boolean isWorldDisabled(String worldName) {
+        if (DisabledWorlds.isWorldDisabled(worldName)) {
+            Debugger.write("World " + worldName + " is disabled for quest processing.");
             return true;
         }
         return false;
