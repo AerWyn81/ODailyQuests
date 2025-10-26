@@ -3,6 +3,7 @@ package com.ordwen.odailyquests.reload;
 import com.ordwen.odailyquests.ODailyQuests;
 import com.ordwen.odailyquests.configuration.ConfigFactory;
 import com.ordwen.odailyquests.configuration.essentials.Debugger;
+import com.ordwen.odailyquests.configuration.essentials.ReloadMessage;
 import com.ordwen.odailyquests.configuration.integrations.ItemsAdderEnabled;
 import com.ordwen.odailyquests.configuration.integrations.NexoEnabled;
 import com.ordwen.odailyquests.configuration.integrations.OraxenEnabled;
@@ -35,9 +36,13 @@ public class ReloadService {
      * Load all quests from connected players, to avoid errors on reload.
      */
     public void loadConnectedPlayerQuests() {
+        loadConnectedPlayerQuests(true);
+    }
+
+    public void loadConnectedPlayerQuests(boolean sendStatusMessage) {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (!QuestsManager.getActiveQuests().containsKey(player.getName())) {
-                plugin.getDatabaseManager().loadQuestsForPlayer(player.getName());
+                plugin.getDatabaseManager().loadQuestsForPlayer(player.getName(), sendStatusMessage);
             }
         }
     }
@@ -90,8 +95,9 @@ public class ReloadService {
             saveConnectedPlayerQuests();
             ODQReloadEvent.call(plugin, ReloadPhase.PLAYERS_SAVED);
 
+            final boolean sendStatusOnReload = ReloadMessage.shouldSendOnReload();
             ODailyQuests.morePaperLib.scheduling().globalRegionalScheduler().runDelayed(() -> {
-                loadConnectedPlayerQuests();
+                loadConnectedPlayerQuests(sendStatusOnReload);
                 ODQReloadEvent.call(plugin, ReloadPhase.PLAYERS_LOADED);
             }, 20L);
 

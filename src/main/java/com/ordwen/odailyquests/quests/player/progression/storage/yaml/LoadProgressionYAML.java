@@ -28,7 +28,7 @@ public class LoadProgressionYAML extends ProgressionLoader {
         this.progressionFile = progressionFile;
     }
 
-    public void loadPlayerQuests(String playerName, Map<String, PlayerQuests> activeQuests) {
+    public void loadPlayerQuests(String playerName, Map<String, PlayerQuests> activeQuests, boolean sendStatusMessage) {
         Debugger.write("Entering loadPlayerQuests (YAML) method for player " + playerName + ".");
 
         ODailyQuests.morePaperLib.scheduling().asyncScheduler().run(() -> {
@@ -49,11 +49,11 @@ public class LoadProgressionYAML extends ProgressionLoader {
                 return;
             }
 
-            loadExistingPlayerData(playerName, activeQuests, player, playerSection);
+            loadExistingPlayerData(playerName, activeQuests, player, playerSection, sendStatusMessage);
         });
     }
 
-    private void loadExistingPlayerData(String playerName, Map<String, PlayerQuests> activeQuests, Player player, ConfigurationSection playerSection) {
+    private void loadExistingPlayerData(String playerName, Map<String, PlayerQuests> activeQuests, Player player, ConfigurationSection playerSection, boolean sendStatusMessage) {
         Debugger.write("Player " + playerName + " has data in progression file.");
 
         final long timestamp = playerSection.getLong(".timestamp");
@@ -90,7 +90,9 @@ public class LoadProgressionYAML extends ProgressionLoader {
             PluginLogger.info(playerName + "'s quests have been loaded.");
         }
 
-        sendQuestStatusMessage(player, achievedQuests, playerQuests);
+        if (sendStatusMessage) {
+            sendQuestStatusMessage(player, achievedQuests, playerQuests);
+        }
     }
 
     private LinkedHashMap<AbstractQuest, Progression> loadPlayerQuestsFromConfig(String playerName, ConfigurationSection playerSection) {

@@ -97,6 +97,10 @@ renew_interval: "1d"
 # Corresponds to quests_in_progress and all_quests_achieved_connect messages.
 join_message_delay: 1.0
 
+# Send the quests_in_progress/all_quests_achieved_connect message to online players
+# when quests are reloaded (e.g. after an integrations reload trigger).
+send_reload_message: true
+
 # Initials that will be displayed
 # between the values on the placeholders.
 # ex: 6d9h24m
