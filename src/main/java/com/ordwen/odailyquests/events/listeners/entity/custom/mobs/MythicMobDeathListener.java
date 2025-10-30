@@ -35,7 +35,7 @@ public class MythicMobDeathListener extends PlayerProgressor implements Listener
 
             final Set<AbstractEntity> targets = threatTable.getAllThreatTargets();
             for (AbstractEntity target : targets) {
-                if (target.getBukkitEntity() instanceof Player player) {
+                if (target != null && target.getBukkitEntity() instanceof Player player) {
                     setPlayerQuestProgression(event, player, 1, "MYTHIC_MOBS");
                 }
             }
