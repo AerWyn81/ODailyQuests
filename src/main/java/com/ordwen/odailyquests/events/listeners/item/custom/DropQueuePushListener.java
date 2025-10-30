@@ -30,6 +30,11 @@ public class DropQueuePushListener extends PlayerProgressor implements Listener 
             return;
         }
 
+        if (currentState == null) {
+            Debugger.write("DropQueuePushListener: onDropQueuePush event currentState is null.");
+            return;
+        }
+
         final Player player = event.getPlayer();
         final BlockData data = currentState.getBlockData();
         final Material dataMaterial = data.getMaterial();
