@@ -217,7 +217,7 @@ public class ToastNotification implements IConfigurable {
     }
 
     private String buildIconJson(String namespacedItemId, Integer cmd) {
-        final IconFormat format = selectIconFormat(NMSHandler.getInstance().getVersion());
+        final IconFormat format = selectIconFormat(NMSHandler.getVersion());
 
         if (format == IconFormat.LEGACY_TAG) {
             // 1.16 - 1.20.4 : item + nbt

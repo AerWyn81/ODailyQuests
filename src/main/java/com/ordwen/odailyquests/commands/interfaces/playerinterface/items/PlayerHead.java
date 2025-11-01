@@ -1,13 +1,16 @@
 package com.ordwen.odailyquests.commands.interfaces.playerinterface.items;
 
+import com.ordwen.odailyquests.ODailyQuests;
 import com.ordwen.odailyquests.api.ODailyQuestsAPI;
 import com.ordwen.odailyquests.commands.interfaces.playerinterface.items.getters.InterfaceItemGetter;
 import com.ordwen.odailyquests.files.implementations.PlayerInterfaceFile;
+import com.ordwen.odailyquests.nms.NMSHandler;
 import com.ordwen.odailyquests.quests.player.PlayerQuests;
 import com.ordwen.odailyquests.tools.TextFormatter;
 import com.ordwen.odailyquests.tools.PluginLogger;
 import com.ordwen.odailyquests.tools.TimeRemain;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -50,7 +53,9 @@ public class PlayerHead extends InterfaceItemGetter {
 
         if (section.isString(".material")) {
             final String material = section.getString(".material");
-            head = this.getItem(material, "player_head", ".material");
+            if (material != null) {
+                head = this.getItem(material, "player_head", ".material");
+            }
         }
 
         if (head == null) {
@@ -58,17 +63,30 @@ public class PlayerHead extends InterfaceItemGetter {
         }
 
         meta = (SkullMeta) head.getItemMeta();
-        if (meta == null) return;
+        if (meta == null) {
+            return;
+        }
 
         meta.setDisplayName(TextFormatter.format(section.getString(".item_name")));
         meta.setLore(section.getStringList(".item_description"));
 
-        if (section.isInt(".custom_model_data"))
+        if (section.isInt(".custom_model_data")) {
             meta.setCustomModelData(section.getInt(".custom_model_data"));
+        }
+
+        if (section.isString(".item_model")) {
+            final String itemModel = section.getString(".item_model");
+            if (itemModel != null) {
+                NMSHandler.trySetItemModel(meta, itemModel);
+            }
+        }
 
         slots.clear();
-        if (section.isList(SLOT_PARAMETER)) slots.addAll(section.getIntegerList(SLOT_PARAMETER));
-        else slots.add(section.getInt(SLOT_PARAMETER) - 1);
+        if (section.isList(SLOT_PARAMETER)) {
+            slots.addAll(section.getIntegerList(SLOT_PARAMETER));
+        } else {
+            slots.add(section.getInt(SLOT_PARAMETER) - 1);
+        }
     }
 
     public Inventory setPlayerHead(Inventory inventory, Player player, int size) {
