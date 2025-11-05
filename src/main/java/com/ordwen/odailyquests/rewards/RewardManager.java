@@ -124,6 +124,7 @@ public class RewardManager {
                     .run(() -> {
                         try {
                             Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                            Debugger.write("[RewardCmd] Executed command: " + cmd);
                         } catch (Exception e) {
                             Debugger.write("[RewardCmd] Error while executing command: " + cmd);
                             if (e.getMessage() != null) {
@@ -144,7 +145,10 @@ public class RewardManager {
      */
     private static void handleExpLevelsReward(Player player, Reward reward) {
         ODailyQuests.morePaperLib.scheduling().entitySpecificScheduler(player)
-                .run(() -> player.giveExpLevels((int) reward.getRewardAmount()), null);
+                .run(() -> {
+                    player.giveExpLevels((int) reward.getRewardAmount());
+                    Debugger.write("RewardManager: Given " + reward.getRewardAmount() + " EXP levels to " + player.getName() + ".");
+                }, null);
         sendMsgAmount(player, QuestsMessages.REWARD_EXP_LEVELS, reward.getRewardAmount());
     }
 
@@ -153,7 +157,10 @@ public class RewardManager {
      */
     private static void handleExpPointsReward(Player player, Reward reward) {
         ODailyQuests.morePaperLib.scheduling().entitySpecificScheduler(player)
-                .run(() -> player.giveExp((int) reward.getRewardAmount()), null);
+                .run(() -> {
+                    player.giveExp((int) reward.getRewardAmount());
+                    Debugger.write("RewardManager: Given " + reward.getRewardAmount() + " EXP points to " + player.getName() + ".");
+                }, null);
         sendMsgAmount(player, QuestsMessages.REWARD_EXP_POINTS, reward.getRewardAmount());
     }
 
@@ -167,6 +174,7 @@ public class RewardManager {
             return;
         }
         VaultHook.getEconomy().depositPlayer(player, reward.getRewardAmount());
+        Debugger.write("RewardManager: Given " + reward.getRewardAmount() + " money to " + player.getName() + ".");
         sendMsgAmount(player, QuestsMessages.REWARD_MONEY, reward.getRewardAmount());
     }
 
@@ -177,11 +185,13 @@ public class RewardManager {
     private static void handlePointsReward(Player player, Reward reward) {
         if (TokenManagerHook.getTokenManagerAPI() != null) {
             TokenManagerHook.getTokenManagerAPI().addTokens(player, (int) reward.getRewardAmount());
+            Debugger.write("RewardManager: Given " + reward.getRewardAmount() + " points to " + player.getName() + " via TokenManager.");
             sendMsgAmount(player, QuestsMessages.REWARD_POINTS, reward.getRewardAmount());
             return;
         }
         if (PlayerPointsHook.isPlayerPointsSetup()) {
             PlayerPointsHook.getPlayerPointsAPI().give(player.getUniqueId(), (int) reward.getRewardAmount());
+            Debugger.write("RewardManager: Given " + reward.getRewardAmount() + " points to " + player.getName() + " via PlayerPoints.");
             sendMsgAmount(player, QuestsMessages.REWARD_POINTS, reward.getRewardAmount());
             return;
         }
@@ -205,6 +215,7 @@ public class RewardManager {
         }
 
         CoinsEngineAPI.addBalance(player, currency, reward.getRewardAmount());
+        Debugger.write("RewardManager: Given " + reward.getRewardAmount() + " " + reward.getRewardCurrency() + " to " + player.getName() + " via CoinsEngine.");
         sendMsgAmountAndCurrency(
                 player,
                 QuestsMessages.REWARD_COINS_ENGINE,
