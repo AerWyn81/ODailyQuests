@@ -13,6 +13,9 @@ public class RewardLoader {
      * @return reward.
      */
     public Reward getRewardFromSection(ConfigurationSection section, String fileName, String questIndex) {
+        if (!section.getBoolean(".enabled", true)) {
+            return new Reward(RewardType.NONE, 0, "");
+        }
 
         RewardType rewardType;
         try {
