@@ -286,7 +286,7 @@ public final class ODailyQuests extends JavaPlugin {
             String currentVersion = this.getDescription().getVersion();
             boolean isSnapshot = currentVersion.contains("SNAPSHOT");
 
-            String cleanCurrentVersion = currentVersion.replace("-SNAPSHOT", "");
+            String cleanCurrentVersion = currentVersion.replaceAll("^([0-9]+\\.[0-9]+\\.[0-9]+).*$", "$1");
             int comparison = UpdateChecker.compareVersions(cleanCurrentVersion, version);
 
             if (isSnapshot) {
