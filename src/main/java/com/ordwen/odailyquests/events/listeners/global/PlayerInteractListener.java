@@ -2,7 +2,6 @@ package com.ordwen.odailyquests.events.listeners.global;
 
 import com.ordwen.odailyquests.ODailyQuests;
 import com.ordwen.odailyquests.quests.player.progression.PlayerProgressor;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -29,7 +28,7 @@ public class PlayerInteractListener extends PlayerProgressor implements Listener
 
         final Location loc = block.getLocation();
 
-        Bukkit.getScheduler().runTask(ODailyQuests.INSTANCE, () -> {
+        ODailyQuests.morePaperLib.scheduling().regionSpecificScheduler(loc).run(() -> {
             if (loc.getBlock().getType() == Material.CARVED_PUMPKIN) {
                 setPlayerQuestProgression(event, player, 1, "CARVE");
             }

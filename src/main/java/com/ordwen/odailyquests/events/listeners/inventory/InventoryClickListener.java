@@ -128,30 +128,37 @@ public class InventoryClickListener extends ClickableChecker implements Listener
     }
 
     private void scheduleDeltaProgress(Merchant merchant, int idx, int beforeUses, int perTradeResult, Villager villager, MerchantRecipe selectedRecipe, QuestContext.Builder contextBuilder) {
-        Bukkit.getScheduler().runTask(ODailyQuests.INSTANCE, () -> {
-            try {
-                final MerchantRecipe afterRec = merchant.getRecipe(idx);
-                final int afterUses = afterRec.getUses();
-                final int deltaTrades = Math.max(0, afterUses - beforeUses);
-                Debugger.write("[TradeDelta] After uses=" + afterUses + " -> deltaTrades=" + deltaTrades);
+        ODailyQuests.morePaperLib.scheduling().entitySpecificScheduler(villager).run(
+                () -> {
+                    try {
+                        final MerchantRecipe afterRec = merchant.getRecipe(idx);
+                        final int afterUses = afterRec.getUses();
+                        final int deltaTrades = Math.max(0, afterUses - beforeUses);
+                        Debugger.write("[TradeDelta] After uses=" + afterUses + " -> deltaTrades=" + deltaTrades);
 
-                if (deltaTrades == 0) {
-                    Debugger.write("[TradeDelta] No trades executed (delta=0). No quest progress.");
-                    return;
+                        if (deltaTrades == 0) {
+                            Debugger.write("[TradeDelta] No trades executed (delta=0). No quest progress.");
+                            return;
+                        }
+
+                        final int amount = deltaTrades * perTradeResult;
+                        Debugger.write("[TradeDelta] Final quest amount=" + amount
+                                + " (deltaTrades=" + deltaTrades + " * perTradeResult=" + perTradeResult + ")");
+
+                        contextBuilder.villagerTrade(villager, selectedRecipe, amount);
+                        processQuestCompletion(contextBuilder.build());
+                    } catch (Exception e) {
+                        Debugger.write("[TradeDelta] ERROR while reading after-uses: " + e.getMessage());
+                        contextBuilder.villagerTrade(villager, selectedRecipe, perTradeResult);
+                        processQuestCompletion(contextBuilder.build());
+                    }
+                },
+                () -> {
+                    Debugger.write("[TradeDelta] Skipped: villager not schedulable (invalid/unloaded). Fallback per-click.");
+                    contextBuilder.villagerTrade(villager, selectedRecipe, perTradeResult);
+                    processQuestCompletion(contextBuilder.build());
                 }
-
-                final int amount = deltaTrades * perTradeResult;
-                Debugger.write("[TradeDelta] Final quest amount=" + amount
-                        + " (deltaTrades=" + deltaTrades + " * perTradeResult=" + perTradeResult + ")");
-
-                contextBuilder.villagerTrade(villager, selectedRecipe, amount);
-                processQuestCompletion(contextBuilder.build());
-            } catch (Exception e) {
-                Debugger.write("[TradeDelta] ERROR while reading after-uses: " + e.getMessage());
-                contextBuilder.villagerTrade(villager, selectedRecipe, perTradeResult);
-                processQuestCompletion(contextBuilder.build());
-            }
-        });
+        );
     }
 
     /* ======================  FURNACE  ====================== */
