@@ -2,6 +2,7 @@ package com.ordwen.odailyquests.quests;
 
 import com.ordwen.odailyquests.ODailyQuests;
 import com.ordwen.odailyquests.api.quests.QuestTypeRegistry;
+import com.ordwen.odailyquests.nms.NMSHandler;
 import com.ordwen.odailyquests.quests.conditions.ConditionOperator;
 import com.ordwen.odailyquests.quests.conditions.placeholder.PlaceholderCondition;
 import com.ordwen.odailyquests.quests.getters.QuestItemGetter;
@@ -15,15 +16,34 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.inventory.ItemStack;
 import com.ordwen.odailyquests.tools.PluginLogger;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
+/**
+ * Responsible for loading quests from configuration files.
+ * <p>
+ * This loader handles:
+ * <ul>
+ *     <li>Reading quest definitions from YAML files</li>
+ *     <li>Validating configuration values</li>
+ *     <li>Creating {@link BasicQuest} objects</li>
+ *     <li>Instantiating final quest implementations based on their type</li>
+ *     <li>Loading quest rewards</li>
+ *     <li>Reading placeholder-based conditions</li>
+ * </ul>
+ * <p>
+ * Invalid configurations are reported through {@link PluginLogger}, and
+ * the corresponding quests are skipped gracefully.
+ */
 public class QuestsLoader extends QuestItemGetter {
 
     private static final String ACHIEVED_MENU_ITEM = "achieved_menu_item";
+    private static final String ACHIEVED_MENU_ITEM_MODEL = "achieved_menu_item_model";
     private static final String REQUIRED_PERMISSIONS = "required_permissions";
     private static final String REQUIRED_PERMISSION = "required_permission";
     private static final String CONDITIONS = "conditions";
@@ -32,41 +52,62 @@ public class QuestsLoader extends QuestItemGetter {
     private final QuestTypeRegistry questTypeRegistry = ODailyQuests.INSTANCE.getAPI().getQuestTypeRegistry();
 
     /**
-     * Load the reward of a quest.
+     * Loads the reward configuration for a quest.
+     * <p>
+     * If the <code>.reward</code> section is missing or invalid, a default
+     * {@link RewardType#NONE} reward is returned and the error is logged.
      *
-     * @param questSection the current quest section.
-     * @param fileName     the file name where the quest is.
-     * @param questIndex   the quest index in the file.
-     * @return the reward of the quest.
+     * @param questSection the section of the quest currently being loaded
+     * @param fileName     the file name for error reporting
+     * @param questIndex   the quest index inside the file
+     * @return a fully constructed {@link Reward}, never {@code null}
      */
     private Reward createReward(ConfigurationSection questSection, String fileName, String questIndex) {
         if (!questSection.isConfigurationSection(".reward")) return new Reward(RewardType.NONE, 0, null);
         final ConfigurationSection rewardSection = questSection.getConfigurationSection(".reward");
 
+        if (rewardSection == null) {
+            PluginLogger.configurationError(fileName, questIndex, "reward", "There is no reward section defined for the quest.");
+            return new Reward(RewardType.NONE, 0, null);
+        }
+
         return rewardLoader.getRewardFromSection(rewardSection, fileName, questIndex);
     }
 
     /**
-     * Create a quest with all basic information.
+     * Creates a {@link BasicQuest} object containing all fundamental quest
+     * attributes shared by all quest types.
+     * <p>
+     * This includes:
+     * <ul>
+     *     <li>Name and description</li>
+     *     <li>Type validation</li>
+     *     <li>World/region constraints</li>
+     *     <li>Permissions</li>
+     *     <li>Placeholder-based conditions</li>
+     *     <li>Menu items and achieved-state items</li>
+     *     <li>Quest reward</li>
+     * </ul>
+     * <p>
+     * If any validation error occurs, the issue is logged and {@code null}
+     * is returned, signaling that the quest should be skipped.
      *
-     * @param questSection the current quest section.
-     * @param fileName     the file name where the quest is.
-     * @param questIndex   the quest index in the file.
-     * @return the global quest.
+     * @param questSection the configuration section defining the quest
+     * @param fileName     the file name for error logging
+     * @param questIndex   the index of the quest within the file
+     * @param fileIndex    the quest identifier inside the YAML file
+     * @return a {@link BasicQuest}, or {@code null} if configuration is invalid
      */
     private BasicQuest createBasicQuest(ConfigurationSection questSection, String fileName, int questIndex, String fileIndex) {
-
         /* quest name */
         final String questName = TextFormatter.format(questSection.getString(".name"));
 
         /* quest description */
-        final List<String> questDesc = questSection.getStringList(".description");
-        for (String string : questDesc) questDesc.set(questDesc.indexOf(string), TextFormatter.format(string));
+        final List<String> questDesc = formatQuestDescription(questSection);
 
         /* quest type */
         final String questType = questSection.getString(".quest_type");
-        if (!questTypeRegistry.containsKey(questType)) {
-            PluginLogger.configurationError(fileName, fileIndex, "quest_type", questType + " is not a valid quest type.");
+        if (!isValidQuestType(questType, fileName, fileIndex)) {
             return null;
         }
 
@@ -83,30 +124,20 @@ public class QuestsLoader extends QuestItemGetter {
         final boolean protectionBypass = questSection.getBoolean(".protection_bypass");
 
         /* required permission */
-        final List<String> requiredPermissions;
-        if (questSection.isString(REQUIRED_PERMISSIONS)) {
-            requiredPermissions = List.of(questSection.getString(REQUIRED_PERMISSIONS));
-        } else if (questSection.isList(REQUIRED_PERMISSIONS)) {
-            requiredPermissions = questSection.getStringList(REQUIRED_PERMISSIONS);
-        } else if (questSection.isString(REQUIRED_PERMISSION)) {
-            requiredPermissions = List.of(questSection.getString(REQUIRED_PERMISSION));
-        } else {
-            requiredPermissions = Collections.emptyList();
-        }
+        final List<String> requiredPermissions = resolveRequiredPermissions(questSection);
 
         /* conditions */
-        final List<PlaceholderCondition> placeholderConditions = parsePlaceholderConditions(questSection, fileName, fileIndex);
-        if (placeholderConditions == null) return null;
-
-        /* menu item */
-        final String presumedItem = questSection.getString(".menu_item");
-        if (presumedItem == null) {
-            PluginLogger.configurationError(fileName, fileIndex, "menu_item", "The menu item is not defined.");
+        final Optional<List<PlaceholderCondition>> conditionsOpt = parsePlaceholderConditions(questSection, fileName, fileIndex);
+        if (conditionsOpt.isEmpty()) {
             return null;
         }
+        final List<PlaceholderCondition> placeholderConditions = conditionsOpt.get();
 
-        final ItemStack menuItem = getItemStackFromMaterial(presumedItem, fileName, fileIndex, "menu_item");
-        if (menuItem == null) return null;
+        /* menu item */
+        final ItemStack menuItem = createMenuItem(questSection, fileName, fileIndex);
+        if (menuItem == null) {
+            return null;
+        }
 
         /* menu item amount */
         final int menuItemAmount = questSection.getInt(".menu_item_amount", 1);
@@ -115,15 +146,17 @@ public class QuestsLoader extends QuestItemGetter {
             return null;
         }
 
+        /* menu item model */
+        applyMenuItemModel(questSection, menuItem);
+
         /* achieved menu item */
-        final ItemStack achievedItem;
-        if (questSection.isString(ACHIEVED_MENU_ITEM)) {
-            final String presumedAchievedItem = questSection.getString(ACHIEVED_MENU_ITEM);
-            achievedItem = getItemStackFromMaterial(presumedAchievedItem, fileName, fileIndex, ACHIEVED_MENU_ITEM);
-            if (achievedItem == null) return null;
-        } else {
-            achievedItem = menuItem;
+        final ItemStack achievedItem = createAchievedMenuItem(questSection, fileName, fileIndex, menuItem);
+        if (achievedItem == null) {
+            return null;
         }
+
+        /* achieved menu item model */
+        applyAchievedMenuItemModel(questSection, achievedItem);
 
         /* reward */
         final Reward reward = createReward(questSection, fileName, fileIndex);
@@ -132,11 +165,174 @@ public class QuestsLoader extends QuestItemGetter {
     }
 
     /**
-     * Load quests from a file.
+     * Retrieves and formats a quest's description lines using
+     * {@link TextFormatter#format(String)}.
      *
-     * @param file     file to check.
-     * @param quests   list for quests.
-     * @param fileName file name for PluginLogger.
+     * @param questSection the quest configuration section
+     * @return a formatted list of description lines, never {@code null}
+     */
+    private List<String> formatQuestDescription(ConfigurationSection questSection) {
+        final List<String> questDesc = questSection.getStringList(".description");
+        questDesc.replaceAll(TextFormatter::format);
+        return questDesc;
+    }
+
+    /**
+     * Checks whether the provided quest type exists in the
+     * {@link QuestTypeRegistry}.
+     * <p>
+     * If invalid, an error is logged.
+     *
+     * @param questType the quest type identifier
+     * @param fileName  the file name for error logging
+     * @param fileIndex the quest index in the file
+     * @return {@code true} if the type is valid, {@code false} otherwise
+     */
+    private boolean isValidQuestType(String questType, String fileName, String fileIndex) {
+        if (questTypeRegistry.containsKey(questType)) {
+            return true;
+        }
+        PluginLogger.configurationError(fileName, fileIndex, "quest_type", questType + " is not a valid quest type.");
+        return false;
+    }
+
+    /**
+     * Resolves the permissions required to start the quest.
+     * <p>
+     * The configuration accepts these formats:
+     * <ul>
+     *     <li><code>required_permissions: [ ... ]</code></li>
+     *     <li><code>required_permissions: "perm"</code></li>
+     *     <li><code>required_permission: "perm"</code></li>
+     * </ul>
+     * <p>
+     * If no permissions are defined, an empty list is returned.
+     *
+     * @param questSection the configuration section containing quest data
+     * @return a list of required permissions, never {@code null}
+     */
+    private List<String> resolveRequiredPermissions(ConfigurationSection questSection) {
+        if (questSection.isString(REQUIRED_PERMISSIONS)) {
+            final String value = questSection.getString(REQUIRED_PERMISSIONS);
+            if (value == null) {
+                return Collections.emptyList();
+            }
+            return List.of(value);
+        }
+
+        if (questSection.isList(REQUIRED_PERMISSIONS)) {
+            return questSection.getStringList(REQUIRED_PERMISSIONS);
+        }
+
+        if (questSection.isString(REQUIRED_PERMISSION)) {
+            final String value = questSection.getString(REQUIRED_PERMISSION);
+            if (value == null) {
+                return Collections.emptyList();
+            }
+            return List.of(value);
+        }
+
+        return Collections.emptyList();
+    }
+
+    /**
+     * Loads the quest's main menu item.
+     * <p>
+     * If no material is defined, the error is logged and {@code null} is returned.
+     *
+     * @param questSection the section defining the quest
+     * @param fileName     the file name for logging purposes
+     * @param fileIndex    the quest index in the file
+     * @return an {@link ItemStack} for the menu icon, or {@code null} if invalid
+     */
+    private ItemStack createMenuItem(ConfigurationSection questSection, String fileName, String fileIndex) {
+        final String presumedItem = questSection.getString(".menu_item");
+        if (presumedItem == null) {
+            PluginLogger.configurationError(fileName, fileIndex, "menu_item", "The menu item is not defined.");
+            return null;
+        }
+
+        return getItemStackFromMaterial(presumedItem, fileName, fileIndex, "menu_item");
+    }
+
+    /**
+     * Applies a custom model ID to the menu item if the configuration
+     * specifies <code>menu_item_model</code>.
+     *
+     * @param questSection the quest configuration
+     * @param menuItem     the item whose model must be updated
+     */
+    private void applyMenuItemModel(ConfigurationSection questSection, ItemStack menuItem) {
+        final String menuItemModel = questSection.getString(".menu_item_model");
+        if (menuItemModel == null || menuItemModel.isEmpty()) {
+            return;
+        }
+
+        final ItemMeta menuItemMeta = menuItem.getItemMeta();
+        NMSHandler.trySetItemModel(menuItemMeta, menuItemModel);
+        menuItem.setItemMeta(menuItemMeta);
+    }
+
+    /**
+     * Loads the menu item displayed when the quest is completed.
+     * <p>
+     * If not defined, the base menu item is reused.
+     * If the configuration is invalid, an error is logged and the base item is returned.
+     *
+     * @param questSection the quest configuration
+     * @param fileName     file name for error logging
+     * @param fileIndex    quest index in the file
+     * @param menuItem     the default menu item
+     * @return the achieved-state {@link ItemStack}, never {@code null}
+     */
+    private ItemStack  createAchievedMenuItem(ConfigurationSection questSection, String fileName, String fileIndex, ItemStack menuItem) {
+        if (!questSection.isString(ACHIEVED_MENU_ITEM)) {
+            return menuItem.clone();
+        }
+
+        final String presumedAchievedItem = questSection.getString(ACHIEVED_MENU_ITEM);
+        if (presumedAchievedItem == null) {
+            PluginLogger.configurationError(fileName, fileIndex, ACHIEVED_MENU_ITEM, "The achieved menu item is defined but empty.");
+            return menuItem.clone();
+        }
+
+        return getItemStackFromMaterial(presumedAchievedItem, fileName, fileIndex, ACHIEVED_MENU_ITEM);
+    }
+
+    /**
+     * Applies a custom model ID to the achieved menu item if the configuration
+     * specifies <code>achieved_menu_item_model</code>.
+     *
+     * @param questSection the quest configuration
+     * @param achievedItem the item whose model must be updated
+     */
+    private void applyAchievedMenuItemModel(ConfigurationSection questSection, ItemStack achievedItem) {
+        final String achievedItemModel = questSection.getString(ACHIEVED_MENU_ITEM_MODEL);
+        if (achievedItemModel == null || achievedItemModel.isEmpty()) {
+            return;
+        }
+
+        final ItemMeta achievedItemMeta = achievedItem.getItemMeta();
+        NMSHandler.trySetItemModel(achievedItemMeta, achievedItemModel);
+        achievedItem.setItemMeta(achievedItemMeta);
+    }
+
+    /**
+     * Loads all quests defined in a configuration file.
+     * <p>
+     * For each quest entry:
+     * <ul>
+     *     <li>Reads base quest attributes</li>
+     *     <li>Validates configuration</li>
+     *     <li>Instantiates the concrete quest type</li>
+     *     <li>Adds the quest to the provided list</li>
+     * </ul>
+     * <p>
+     * Invalid quests are skipped, and their errors logged.
+     *
+     * @param file     the YAML file containing quests
+     * @param quests   the list to populate with loaded quests
+     * @param fileName the file name used for logging
      */
     public void loadQuests(FileConfiguration file, List<AbstractQuest> quests, String fileName) {
         final ConfigurationSection allQuestsSection = file.getConfigurationSection("quests");
@@ -149,10 +345,14 @@ public class QuestsLoader extends QuestItemGetter {
 
         for (String fileQuest : allQuestsSection.getKeys(false)) {
             final ConfigurationSection questSection = allQuestsSection.getConfigurationSection(fileQuest);
-            if (questSection == null) continue;
+            if (questSection == null) {
+                continue;
+            }
 
             final BasicQuest base = createBasicQuest(questSection, fileName, questIndex, fileQuest);
-            if (base == null) continue;
+            if (base == null) {
+                continue;
+            }
 
             final String questType = base.getQuestType();
             if (registerQuest(quests, fileName, questType, base, questSection, fileQuest)) {
@@ -164,14 +364,21 @@ public class QuestsLoader extends QuestItemGetter {
     }
 
     /**
-     * Register a quest.
+     * Instantiates and registers a quest of the given type.
+     * <p>
+     * The quest implementation is fetched from {@link QuestTypeRegistry}
+     * and constructed using its {@link BasicQuest}-based constructor.
+     * <p>
+     * If instantiation fails or parameters cannot be loaded, the quest
+     * is not added to the list.
      *
-     * @param quests       list for quests.
-     * @param fileName     file name for PluginLogger.
-     * @param questType    type of the quest.
-     * @param base         parent quest.
-     * @param questSection current quest section.
-     * @param questIndex   quest index in the file.
+     * @param quests       the list to append the quest to
+     * @param fileName     the file name for error reporting
+     * @param questType    the quest type identifier
+     * @param base         the preloaded basic quest information
+     * @param questSection the configuration section for this quest
+     * @param questIndex   the quest index inside the file
+     * @return {@code true} if the quest was successfully registered
      */
     private boolean registerQuest(List<AbstractQuest> quests, String fileName, String questType, BasicQuest base, ConfigurationSection questSection, String questIndex) {
         final Class<? extends AbstractQuest> questClass = questTypeRegistry.get(questType);
@@ -193,49 +400,66 @@ public class QuestsLoader extends QuestItemGetter {
         return false;
     }
 
-    private List<PlaceholderCondition> parsePlaceholderConditions(ConfigurationSection questSection, String fileName, String questIndex) {
+    /**
+     * Parses all placeholder-based conditions for a quest.
+     * <p>
+     * Behaviour:
+     * <ul>
+     *     <li>If the conditions section is missing → returns {@code Optional.of(emptyList())}</li>
+     *     <li>If the conditions are valid → returns {@code Optional.of(list)}</li>
+     *     <li>If any condition is invalid → logs the error and returns {@code Optional.empty()}</li>
+     * </ul>
+     *
+     * @param questSection the quest configuration section
+     * @param fileName     file name for error logging
+     * @param questIndex   index of the quest in the file
+     * @return an {@link Optional} containing the conditions or empty if invalid
+     */
+    private Optional<List<PlaceholderCondition>> parsePlaceholderConditions(ConfigurationSection questSection, String fileName, String questIndex) {
         if (!questSection.isConfigurationSection(CONDITIONS)) {
-            return Collections.emptyList();
+            return Optional.of(Collections.emptyList());
         }
 
         final ConfigurationSection conditionsSection = questSection.getConfigurationSection(CONDITIONS);
         if (conditionsSection == null) {
-            return Collections.emptyList();
+            return Optional.of(Collections.emptyList());
         }
 
         final List<PlaceholderCondition> conditions = new ArrayList<>();
 
         for (String key : conditionsSection.getKeys(false)) {
+            final String basePath = CONDITIONS + "." + key;
+
             final ConfigurationSection conditionSection = conditionsSection.getConfigurationSection(key);
             if (conditionSection == null) {
-                PluginLogger.configurationError(fileName, questIndex, CONDITIONS + "." + key, "The condition section is invalid.");
-                return null;
+                PluginLogger.configurationError(fileName, questIndex, basePath, "The condition section is invalid.");
+                return Optional.empty();
             }
 
             final String placeholder = conditionSection.getString("placeholder");
             if (placeholder == null || placeholder.isEmpty()) {
-                PluginLogger.configurationError(fileName, questIndex, CONDITIONS + "." + key + ".placeholder", "The placeholder value is missing.");
-                return null;
+                PluginLogger.configurationError(fileName, questIndex, basePath + ".placeholder", "The placeholder value is missing.");
+                return Optional.empty();
             }
 
             final String operatorRaw = conditionSection.getString("operator");
             if (operatorRaw == null || operatorRaw.isEmpty()) {
-                PluginLogger.configurationError(fileName, questIndex, CONDITIONS + "." + key + ".operator", "The condition operator is missing.");
-                return null;
+                PluginLogger.configurationError(fileName, questIndex, basePath + ".operator", "The condition operator is missing.");
+                return Optional.empty();
             }
 
             final ConditionOperator conditionOperator;
             try {
                 conditionOperator = ConditionOperator.valueOf(operatorRaw.toUpperCase());
             } catch (IllegalArgumentException ex) {
-                PluginLogger.configurationError(fileName, questIndex, CONDITIONS + "." + key + ".operator", operatorRaw + " is not a valid operator.");
-                return null;
+                PluginLogger.configurationError(fileName, questIndex, basePath + ".operator", operatorRaw + " is not a valid operator.");
+                return Optional.empty();
             }
 
             final Object expectedObject = conditionSection.get("expected");
             if (expectedObject == null) {
-                PluginLogger.configurationError(fileName, questIndex, CONDITIONS + "." + key + ".expected", "The expected value is missing.");
-                return null;
+                PluginLogger.configurationError(fileName, questIndex, basePath + ".expected", "The expected value is missing.");
+                return Optional.empty();
             }
 
             final String expectedValue = String.valueOf(expectedObject);
@@ -244,6 +468,6 @@ public class QuestsLoader extends QuestItemGetter {
             conditions.add(new PlaceholderCondition(placeholder, conditionOperator, expectedValue, errorMessage));
         }
 
-        return conditions;
+        return Optional.of(conditions);
     }
 }
