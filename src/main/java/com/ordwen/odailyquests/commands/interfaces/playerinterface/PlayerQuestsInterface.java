@@ -43,7 +43,7 @@ import java.util.regex.Pattern;
  *     <li>Building the final inventory instance for a specific player</li>
  *     <li>Executing associated commands when specific items are clicked</li>
  * </ul>
- *
+ * <p>
  * The interface supports:
  * <ul>
  *     <li>Custom textures (heads)</li>
@@ -77,6 +77,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
 
     /* item slots */
     private final Map<Integer, List<Integer>> slotQuests = new HashMap<>();
+    private final Map<String, List<Integer>> categorySlots = new HashMap<>();
 
     /* item lists */
     private final Set<ItemStack> fillItems = new HashSet<>();
@@ -118,7 +119,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      *     <li>Loads static items (fillers, buttons, command items...)</li>
      *     <li>Handles item models, flags, names and lore</li>
      * </ul>
-     *
+     * <p>
      * If misconfigured sections are found, appropriate errors are logged
      * and the interface will be partially or fully disabled.
      */
@@ -160,7 +161,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      *     <li>Injects the player's head (if configured)</li>
      *     <li>Places quest items depending on progression</li>
      * </ul>
-     *
+     * <p>
      * If the player has no loaded quests (e.g., reload during session), errors are logged.
      *
      * @param player the player for whom the inventory is generated
@@ -206,7 +207,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      *     <li>Text components</li>
      *     <li>Flags (glowing_if_achieved, disable_status)</li>
      * </ul>
-     *
+     * <p>
      * Also resets internal caches to support full hot reload.
      *
      * @param interfaceConfig the "player_interface" section of the configuration
@@ -215,6 +216,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
 
         /* clear all lists, in case of reload */
         slotQuests.clear();
+        categorySlots.clear();
         fillItems.clear();
         closeItems.clear();
         playerCommandsItems.clear();
@@ -255,7 +257,16 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      * @param questsSection the configuration section defining slot → quest mapping
      */
     private void loadQuestsSlots(ConfigurationSection questsSection) {
+        final ConfigurationSection categoriesSection = questsSection.getConfigurationSection("categories");
+        if (categoriesSection != null) {
+            loadCategorySlots(categoriesSection);
+        }
+
         for (String index : questsSection.getKeys(false)) {
+            if (index.equalsIgnoreCase("categories")) {
+                continue;
+            }
+
             int slot = Integer.parseInt(index) - 1;
             if (questsSection.isList(index)) {
                 final List<Integer> values = questsSection.getIntegerList(index);
@@ -264,6 +275,23 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
                 int value = questsSection.getInt(index);
                 slotQuests.put(slot, Collections.singletonList(value));
             }
+        }
+    }
+
+    /**
+     * Loads slot positions grouped by quest category.
+     *
+     * @param categoriesSection configuration section containing category → slots mapping.
+     */
+    private void loadCategorySlots(ConfigurationSection categoriesSection) {
+        for (String category : categoriesSection.getKeys(false)) {
+            final List<Integer> slots = categoriesSection.getIntegerList(category);
+            if (slots.isEmpty()) {
+                PluginLogger.error(ERROR_OCCURRED + "No slots defined for category " + category + ".");
+                continue;
+            }
+
+            categorySlots.put(category.toLowerCase(Locale.ROOT), slots);
         }
     }
 
@@ -278,7 +306,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      *     <li>Type-specific behaviour (FILL, CLOSE, COMMAND...)</li>
      *     <li>Placeholder detection for dynamic updates</li>
      * </ul>
-     *
+     * <p>
      * Errors in configuration disable that specific item.
      *
      * @param itemsSection the "items" config section
@@ -524,16 +552,21 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      *     <li>Glowing effect for achieved quests</li>
      * </ul>
      *
-     * @param player target player
-     * @param questsMap the player's quests with their progression
+     * @param player       target player
+     * @param questsMap    the player's quests with their progression
      * @param playerQuests the player's quest container
-     * @param inventory the target inventory
+     * @param inventory    the target inventory
      */
     private void applyQuestsItems(Player player, Map<AbstractQuest, Progression> questsMap, PlayerQuests playerQuests, Inventory inventory) {
         int i = 0;
+        final Map<String, Integer> categoryUsage = new HashMap<>();
         for (Map.Entry<AbstractQuest, Progression> entry : questsMap.entrySet()) {
             final AbstractQuest quest = entry.getKey();
             final Progression playerProgression = entry.getValue();
+
+            System.out.println("[DEBUG] Quest index=" + i
+                    + " name=" + quest.getQuestName()
+                    + " category=" + quest.getCategoryName());
 
             final ItemStack itemStack = getQuestItem(quest, playerProgression);
             final ItemMeta itemMeta = itemStack.getItemMeta();
@@ -549,7 +582,12 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
                 itemStack.setAmount(menuItemAmount);
             }
 
-            placeItemInInventory(i, itemStack, inventory);
+            final List<Integer> slots = resolveSlotsForQuest(quest.getCategoryName(), i, categoryUsage);
+
+            System.out.println("[DEBUG] -> resolved slots for quest " + quest.getQuestName()
+                    + " (cat=" + quest.getCategoryName() + "): " + slots);
+
+            placeItemInInventory(i, slots, itemStack, inventory);
 
             i++;
         }
@@ -559,7 +597,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      * Selects the correct menu item depending on quest progression.
      * The returned stack is always cloned to avoid metadata leaks.
      *
-     * @param quest the quest definition
+     * @param quest             the quest definition
      * @param playerProgression the player's progress
      * @return the item stack to display
      */
@@ -576,10 +614,10 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      *     <li>Hidden attributes</li>
      * </ul>
      *
-     * @param itemMeta item meta to update
-     * @param quest the quest
-     * @param progression the player's progression on that quest
-     * @param player the player
+     * @param itemMeta     item meta to update
+     * @param quest        the quest
+     * @param progression  the player's progression on that quest
+     * @param player       the player
      * @param playerQuests the quest container (for %achieved% etc.)
      */
     private void configureItemMeta(ItemMeta itemMeta, AbstractQuest quest, Progression progression, Player player, PlayerQuests playerQuests) {
@@ -656,11 +694,11 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      * Depending on the quest index, place the item in the inventory.
      *
      * @param questIndex quest index.
+     * @param slots      slots where the item should be placed.
      * @param itemStack  item stack to place.
      * @param inventory  inventory to place the item.
      */
-    private void placeItemInInventory(int questIndex, ItemStack itemStack, Inventory inventory) {
-        final List<Integer> slots = slotQuests.get(questIndex);
+    private void placeItemInInventory(int questIndex, List<Integer> slots, ItemStack itemStack, Inventory inventory) {
         if (slots == null) {
             PluginLogger.error(ERROR_OCCURRED + "Slot not defined for quest " + (questIndex + 1));
             return;
@@ -675,6 +713,45 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
     }
 
     /**
+     * Resolves the slot(s) where a quest should be displayed.
+     * <p>
+     * If category-based slots are configured, the next available slot for the quest's category is returned.
+     * Otherwise, the legacy quest-index mapping is used.
+     *
+     * @param categoryName   category of the quest.
+     * @param questIndex     index of the quest in the player's list.
+     * @param categoryUsage  tracker storing how many slots are already consumed per category for this inventory.
+     * @return list of slot indices (1-based), or {@code null} if no slot is configured.
+     */
+    private @Nullable List<Integer> resolveSlotsForQuest(String categoryName, int questIndex, Map<String, Integer> categoryUsage) {
+        if (!categorySlots.isEmpty()) {
+            final String key = categoryName.toLowerCase(Locale.ROOT);
+            final List<Integer> slots = categorySlots.get(key);
+
+            System.out.println("[DEBUG] resolveSlotsForQuest: questIndex=" + questIndex
+                    + ", categoryName=" + categoryName
+                    + ", key=" + key
+                    + ", slots=" + slots);
+
+            if (slots == null || slots.isEmpty()) {
+                PluginLogger.error(ERROR_OCCURRED + "Slot not defined for category " + categoryName + ".");
+                return null;
+            }
+
+            final int usage = categoryUsage.getOrDefault(key, 0);
+            if (usage >= slots.size()) {
+                PluginLogger.error(ERROR_OCCURRED + "Not enough slots configured for category " + categoryName + ".");
+                return null;
+            }
+
+            categoryUsage.put(key, usage + 1);
+            return Collections.singletonList(slots.get(usage));
+        }
+
+        return slotQuests.get(questIndex);
+    }
+
+    /**
      * Applies PAPI-based placeholders on items that were detected
      * to contain placeholders in their name or lore.
      * <p>
@@ -685,9 +762,9 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      *     <li>Any PlaceholderAPI variable</li>
      * </ul>
      *
-     * @param player the player for placeholder context
+     * @param player       the player for placeholder context
      * @param playerQuests the player's quest data
-     * @param inventory the inventory where items must be updated
+     * @param inventory    the inventory where items must be updated
      */
     private void applyPapiItems(Player player, PlayerQuests playerQuests, Inventory inventory) {
         for (Map.Entry<Integer, ItemStack> entry : papiItems.entrySet()) {
@@ -728,8 +805,8 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      * </ul>
      *
      * @param itemStack the base item
-     * @param section the item configuration section
-     * @param flags parsed item flags to apply
+     * @param section   the item configuration section
+     * @param flags     parsed item flags to apply
      * @return the fully configured ItemMeta
      */
     private ItemMeta getItemMeta(ItemStack itemStack, ConfigurationSection section, List<ItemFlag> flags) {
@@ -772,7 +849,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      * </ul>
      *
      * @param progression quest progression
-     * @param player the player
+     * @param player      the player
      * @return the rendered status string
      */
     private String getQuestStatus(Progression progression, Player player) {
