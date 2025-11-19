@@ -155,12 +155,16 @@ public class QuestsManager implements Listener {
         final Map<AbstractQuest, Progression> quests = new LinkedHashMap<>();
 
         final Map<String, Category> categoryMap = CategoriesLoader.getAllCategories();
+        final Map<String, Integer> resolvedAmounts = QuestsPerCategory.resolveAllFor(player);
 
         for (Map.Entry<String, Category> entry : categoryMap.entrySet()) {
             final String categoryName = entry.getKey();
             final Category category = entry.getValue();
 
-            int requiredAmount = QuestsPerCategory.getAmountForCategory(categoryName);
+            int requiredAmount = resolvedAmounts.getOrDefault(categoryName, 0);
+            if (requiredAmount <= 0) {
+                continue;
+            }
 
             for (int i = 0; i < requiredAmount; i++) {
                 final AbstractQuest quest = getRandomQuestForPlayer(quests.keySet(), category, player);

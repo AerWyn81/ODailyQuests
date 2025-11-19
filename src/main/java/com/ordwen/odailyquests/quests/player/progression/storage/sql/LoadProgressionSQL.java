@@ -4,7 +4,6 @@ import com.ordwen.odailyquests.ODailyQuests;
 import com.ordwen.odailyquests.configuration.essentials.Debugger;
 import com.ordwen.odailyquests.configuration.essentials.Logs;
 import com.ordwen.odailyquests.configuration.essentials.PlayerDataLoadDelay;
-import com.ordwen.odailyquests.configuration.essentials.QuestsPerCategory;
 import com.ordwen.odailyquests.enums.SQLQuery;
 import com.ordwen.odailyquests.quests.player.PlayerQuests;
 import com.ordwen.odailyquests.quests.player.progression.Progression;
@@ -142,9 +141,9 @@ public class LoadProgressionSQL extends ProgressionLoader {
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                 int id = 1;
-                if (resultSet.next()) {
-                    do {
+                while (resultSet.next()) {
                         final int questIndex = resultSet.getInt("quest_index");
+                        final String categoryName = resultSet.getString("category");
                         final int advancement = resultSet.getInt("advancement");
                         final int requiredAmount = resultSet.getInt("required_amount");
                         int selectedRequired = resultSet.getInt("selected_required");
@@ -160,7 +159,7 @@ public class LoadProgressionSQL extends ProgressionLoader {
 
                         final boolean isAchieved = resultSet.getBoolean("is_achieved");
 
-                        final AbstractQuest quest = QuestLoaderUtils.findQuest(playerName, questIndex, id);
+                        final AbstractQuest quest = QuestLoaderUtils.findQuest(playerName, categoryName, questIndex, id);
                         if (quest == null) {
                             Debugger.write("Quest " + id + " does not exist. New quests will be drawn.");
                             return false;
@@ -181,17 +180,7 @@ public class LoadProgressionSQL extends ProgressionLoader {
 
                         quests.put(quest, progression);
                         id++;
-                    } while (resultSet.next() && id <= QuestsPerCategory.getTotalQuestsAmount());
-
-                    if (resultSet.next()) {
-                        logExcessQuests(playerName);
                     }
-                }
-
-                if (id - 1 < QuestsPerCategory.getTotalQuestsAmount()) {
-                    PluginLogger.warn("Player " + playerName + " has less quests than expected. New quests will be drawn.");
-                    return false;
-                }
             }
         } catch (final SQLException e) {
             error(playerName, e.getMessage());

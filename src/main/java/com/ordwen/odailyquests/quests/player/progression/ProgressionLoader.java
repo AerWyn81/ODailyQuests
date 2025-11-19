@@ -3,7 +3,6 @@ package com.ordwen.odailyquests.quests.player.progression;
 import com.ordwen.odailyquests.ODailyQuests;
 import com.ordwen.odailyquests.configuration.essentials.Debugger;
 import com.ordwen.odailyquests.configuration.essentials.JoinMessageDelay;
-import com.ordwen.odailyquests.configuration.essentials.QuestsPerCategory;
 import com.ordwen.odailyquests.enums.QuestsMessages;
 import com.ordwen.odailyquests.enums.QuestsPermissions;
 import com.ordwen.odailyquests.quests.player.PlayerQuests;
@@ -43,12 +42,6 @@ public abstract class ProgressionLoader {
     protected void handleMissingQuests(String playerName) {
         Debugger.write(PLAYER + playerName + " was detected in the progression file but has no quests. This is not normal.");
         PluginLogger.error(PLAYER + playerName + " was detected in the progression file but has no quests. This is not normal.");
-    }
-
-    protected void logExcessQuests(String playerName) {
-        PluginLogger.warn(PLAYER + playerName + " has more quests than the configuration.");
-        PluginLogger.warn("Only the first " + QuestsPerCategory.getTotalQuestsAmount() + " quests will be loaded.");
-        PluginLogger.warn("After changing the number of quests, we recommend that you reset the progressions to avoid any problems.");
     }
 
     protected void handlePlayerDisconnected(String playerName) {

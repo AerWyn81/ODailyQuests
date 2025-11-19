@@ -3,7 +3,6 @@ package com.ordwen.odailyquests.quests.player.progression.storage.yaml;
 import com.ordwen.odailyquests.ODailyQuests;
 import com.ordwen.odailyquests.configuration.essentials.Debugger;
 import com.ordwen.odailyquests.configuration.essentials.Logs;
-import com.ordwen.odailyquests.configuration.essentials.QuestsPerCategory;
 import com.ordwen.odailyquests.quests.player.progression.ProgressionLoader;
 import com.ordwen.odailyquests.quests.types.AbstractQuest;
 import com.ordwen.odailyquests.quests.player.PlayerQuests;
@@ -104,17 +103,12 @@ public class LoadProgressionYAML extends ProgressionLoader {
             return quests;
         }
 
-        int i = 1;
         for (String key : questsSection.getKeys(false)) {
-            if (i > QuestsPerCategory.getTotalQuestsAmount()) {
-                logExcessQuests(playerName);
-                break;
-            }
-
-            int questIndex = questsSection.getInt(key + ".index");
-            int advancement = questsSection.getInt(key + ".progression");
-            int requiredAmount = questsSection.getInt(key + ".requiredAmount");
-            int selectedRequired = questsSection.getInt(key + ".selectedRequired", -1);
+            final int questIndex = questsSection.getInt(key + ".index");
+            final String categoryName = questsSection.getString(key + ".category");
+            final int advancement = questsSection.getInt(key + ".progression");
+            final int requiredAmount = questsSection.getInt(key + ".requiredAmount");
+            final int selectedRequired = questsSection.getInt(key + ".selectedRequired", -1);
 
             // schema update check (1 to 2)
             if (requiredAmount == 0) {
@@ -122,9 +116,9 @@ public class LoadProgressionYAML extends ProgressionLoader {
                 return null;
             }
 
-            boolean isAchieved = questsSection.getBoolean(key + ".isAchieved");
+            final boolean isAchieved = questsSection.getBoolean(key + ".isAchieved");
 
-            final AbstractQuest quest = QuestLoaderUtils.findQuest(playerName, questIndex, Integer.parseInt(key));
+            final AbstractQuest quest = QuestLoaderUtils.findQuest(playerName, categoryName, questIndex, Integer.parseInt(key));
             if (quest == null) {
                 Debugger.write("Quest " + questIndex + " does not exist. " + NEW_QUESTS);
                 return null;
@@ -144,7 +138,6 @@ public class LoadProgressionYAML extends ProgressionLoader {
             }
 
             quests.put(quest, progression);
-            i++;
         }
 
         return quests;

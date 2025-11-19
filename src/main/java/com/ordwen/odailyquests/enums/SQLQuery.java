@@ -20,6 +20,7 @@ public enum SQLQuery {
                     `player_uuid` CHAR(36) NOT NULL,
                     `player_quest_id` SMALLINT NOT NULL,
                     `quest_index` INT NOT NULL,
+                    `category` VARCHAR(50) DEFAULT NULL,
                     `advancement` INT NOT NULL,
                     `required_amount` INT NOT NULL,
                     `is_achieved` BIT NOT NULL,
@@ -48,10 +49,11 @@ public enum SQLQuery {
             """),
 
     MYSQL_SAVE_PROGRESS("""
-                INSERT INTO `odq_progression` (`player_uuid`, `player_quest_id`, `quest_index`, `advancement`, `required_amount`, `is_achieved`, `selected_required`)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO `odq_progression` (`player_uuid`, `player_quest_id`, `quest_index`, `category`, `advancement`, `required_amount`, `is_achieved`, `selected_required`)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     `quest_index` = VALUES(`quest_index`),
+                    `category` = VALUES(`category`),
                     `advancement` = VALUES(`advancement`),
                     `required_amount` = VALUES(`required_amount`),
                     `is_achieved` = VALUES(`is_achieved`),
@@ -83,6 +85,7 @@ public enum SQLQuery {
                     player_uuid TEXT NOT NULL,
                     player_quest_id INTEGER NOT NULL,
                     quest_index INTEGER NOT NULL,
+                    category TEXT,
                     advancement INTEGER NOT NULL,
                     required_amount INTEGER NOT NULL,
                     is_achieved INTEGER NOT NULL,
@@ -106,8 +109,8 @@ public enum SQLQuery {
             """),
 
     SQLITE_SAVE_PROGRESS("""
-                INSERT OR REPLACE INTO `odq_progression` (`player_uuid`, `player_quest_id`, `quest_index`, `advancement`, `required_amount`, `is_achieved`, `selected_required`)
-                VALUES (?, ?, ?, ?, ?, ?, ?);
+                INSERT OR REPLACE INTO `odq_progression` (`player_uuid`, `player_quest_id`, `quest_index`, `category`, `advancement`, `required_amount`, `is_achieved`, `selected_required`)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?);
             """),
 
     SQLITE_SAVE_PLAYER_CATEGORY_STATS("""

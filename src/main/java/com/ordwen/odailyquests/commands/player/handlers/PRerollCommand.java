@@ -1,7 +1,6 @@
 package com.ordwen.odailyquests.commands.player.handlers;
 
 import com.ordwen.odailyquests.api.commands.player.PlayerCommandBase;
-import com.ordwen.odailyquests.configuration.essentials.QuestsPerCategory;
 import com.ordwen.odailyquests.enums.QuestsMessages;
 import com.ordwen.odailyquests.enums.QuestsPermissions;
 import com.ordwen.odailyquests.quests.player.PlayerQuests;
@@ -88,9 +87,14 @@ public class PRerollCommand extends PlayerCommandBase {
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, String[] args) {
-        if (args.length == 2) {
+        if (args.length == 2 && sender instanceof Player player) {
+            final PlayerQuests playerQuests = QuestsManager.getActiveQuests().get(player.getName());
+            if (playerQuests == null) {
+                return Collections.emptyList();
+            }
+
             List<String> questNumbers = new ArrayList<>();
-            for (int i = 1; i <= QuestsPerCategory.getTotalQuestsAmount(); i++) {
+            for (int i = 1; i <= playerQuests.getQuests().size(); i++) {
                 questNumbers.add(String.valueOf(i));
             }
             return questNumbers;

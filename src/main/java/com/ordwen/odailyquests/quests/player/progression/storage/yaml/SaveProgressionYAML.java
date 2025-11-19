@@ -46,6 +46,7 @@ public class SaveProgressionYAML {
 
             final ConfigurationSection questSection = config.createSection(playerUuid + ".quests." + index);
             questSection.set("index", quest.getQuestIndex());
+            questSection.set("category", quest.getCategoryName());
             questSection.set("progression", progression.getAdvancement());
             questSection.set("requiredAmount", progression.getRequiredAmount());
             questSection.set("selectedRequired", progression.getSelectedRequiredIndex());

@@ -158,6 +158,19 @@ public class QuestLoaderUtils {
         return quest;
     }
 
+    public static AbstractQuest findQuest(String playerName, String categoryName, int questIndex, int id) {
+        if (categoryName != null && !categoryName.isEmpty()) {
+            final Category category = CategoriesLoader.getCategoryByName(categoryName);
+            if (category == null) {
+                PluginLogger.warn("Category '" + categoryName + "' referenced in player " + playerName + " data no longer exists. New quests will be drawn for the player.");
+                return null;
+            }
+            return getQuestAtIndex(category, questIndex, playerName);
+        }
+
+        return findQuest(playerName, questIndex, id);
+    }
+
     /**
      * Try to get quest from index.
      *

@@ -5,7 +5,6 @@ import com.ordwen.odailyquests.api.events.AllCategoryQuestsCompletedEvent;
 import com.ordwen.odailyquests.api.events.CategoryTotalRewardReachedEvent;
 import com.ordwen.odailyquests.api.events.TotalRewardReachedEvent;
 import com.ordwen.odailyquests.configuration.essentials.Debugger;
-import com.ordwen.odailyquests.configuration.essentials.QuestsPerCategory;
 import com.ordwen.odailyquests.api.events.AllQuestsCompletedEvent;
 import com.ordwen.odailyquests.configuration.essentials.RerollNotAchieved;
 import com.ordwen.odailyquests.configuration.functionalities.rewards.TotalRewards;
@@ -113,14 +112,14 @@ public class PlayerQuests {
 
         Debugger.write("PlayerQuests: increaseAchievedQuests: " + player.getName() + " has completed " + this.achievedQuestsByCategory.get(category) + " quests in category " + category + ".");
 
-        if (this.achievedQuestsByCategory.get(category) == QuestsPerCategory.getAmountForCategory(category)) {
+        if (this.achievedQuestsByCategory.get(category) == countQuestsInCategory(category)) {
             Debugger.write("PlayerQuests: AllCategoryQuestsCompletedEvent is called.");
             final AllCategoryQuestsCompletedEvent event = new AllCategoryQuestsCompletedEvent(player, category);
             ODailyQuests.INSTANCE.getServer().getPluginManager().callEvent(event);
         }
 
         /* check if the player have completed all quests */
-        if (this.achievedQuests == QuestsPerCategory.getTotalQuestsAmount()) {
+        if (this.achievedQuests == this.quests.size()) {
             Debugger.write("PlayerQuests: AllQuestsCompletedEvent is called.");
 
             final AllQuestsCompletedEvent event = new AllQuestsCompletedEvent(player);
@@ -280,7 +279,7 @@ public class PlayerQuests {
         this.decreaseAchievedQuests();
 
         final int achievedByCategory = this.achievedQuestsByCategory.get(categoryName);
-        final int totalForCategory = QuestsPerCategory.getAmountForCategory(categoryName);
+        final int totalForCategory = countQuestsInCategory(categoryName);
 
         // If the category was fully completed, there's nothing to decrement.
         if (achievedByCategory >= totalForCategory) {
@@ -291,6 +290,16 @@ public class PlayerQuests {
         this.achievedQuestsByCategory.put(questToRemove.getCategoryName(), achievedByCategory - 1);
         Debugger.write("Quest removed from category " + categoryName + ". " +
                 "Quests completed: " + (achievedByCategory - 1) + "/" + totalForCategory + ".");
+    }
+
+    private int countQuestsInCategory(String categoryName) {
+        int total = 0;
+        for (AbstractQuest quest : this.quests.keySet()) {
+            if (quest.getCategoryName().equalsIgnoreCase(categoryName)) {
+                total++;
+            }
+        }
+        return total;
     }
 
     /**

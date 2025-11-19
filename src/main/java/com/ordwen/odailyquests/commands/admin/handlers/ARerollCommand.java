@@ -1,7 +1,6 @@
 package com.ordwen.odailyquests.commands.admin.handlers;
 
 import com.ordwen.odailyquests.api.commands.admin.AdminCommandBase;
-import com.ordwen.odailyquests.configuration.essentials.QuestsPerCategory;
 import com.ordwen.odailyquests.enums.QuestsMessages;
 import com.ordwen.odailyquests.enums.QuestsPermissions;
 import com.ordwen.odailyquests.quests.player.PlayerQuests;
@@ -101,8 +100,18 @@ public class ARerollCommand extends AdminCommandBase {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, String[] args) {
         if (args.length == 3) {
+            final Player target = (args.length >= 2) ? org.bukkit.Bukkit.getPlayerExact(args[1]) : null;
+            if (target == null) {
+                return Collections.emptyList();
+            }
+
+            final PlayerQuests playerQuests = QuestsManager.getActiveQuests().get(target.getName());
+            if (playerQuests == null) {
+                return Collections.emptyList();
+            }
+
             List<String> questNumbers = new ArrayList<>();
-            for (int i = 1; i <= QuestsPerCategory.getTotalQuestsAmount(); i++) {
+            for (int i = 1; i <= playerQuests.getQuests().size(); i++) {
                 questNumbers.add(String.valueOf(i));
             }
             return questNumbers;
