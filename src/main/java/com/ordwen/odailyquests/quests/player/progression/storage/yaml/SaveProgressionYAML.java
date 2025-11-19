@@ -29,9 +29,11 @@ public class SaveProgressionYAML {
     private void updateFile(String playerName, String playerUuid, PlayerQuests playerQuests) {
         final FileConfiguration config = progressionFile.getConfig();
 
-        long timestamp = playerQuests.getTimestamp();
-        int achievedQuests = playerQuests.getAchievedQuests();
-        int totalAchievedQuests = playerQuests.getTotalAchievedQuests();
+        config.set(playerUuid, null);
+
+        final long timestamp = playerQuests.getTimestamp();
+        final int achievedQuests = playerQuests.getAchievedQuests();
+        final int totalAchievedQuests = playerQuests.getTotalAchievedQuests();
 
         final Map<AbstractQuest, Progression> quests = playerQuests.getQuests();
 

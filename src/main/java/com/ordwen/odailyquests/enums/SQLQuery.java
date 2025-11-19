@@ -67,6 +67,16 @@ public enum SQLQuery {
                     `total_achieved_quests` = VALUES(`total_achieved_quests`);
             """),
 
+    MYSQL_DELETE_PROGRESS("""
+                DELETE FROM `odq_progression`
+                WHERE `player_uuid` = ?;
+            """),
+
+    MYSQL_DELETE_PLAYER_CATEGORY_STATS("""
+                DELETE FROM `odq_player_category_stats`
+                WHERE `player_uuid` = ?;
+            """),
+
     // SQLite queries //
 
     SQLITE_CREATE_PLAYER_TABLE("""
@@ -118,6 +128,16 @@ public enum SQLQuery {
                 VALUES (?, ?, ?);
             """),
 
+    SQLITE_DELETE_PROGRESS("""
+                DELETE FROM `odq_progression`
+                WHERE `player_uuid` = ?;
+            """),
+
+    SQLITE_DELETE_PLAYER_CATEGORY_STATS("""
+                DELETE FROM `odq_player_category_stats`
+                WHERE `player_uuid` = ?;
+            """),
+
     // Common queries //
 
     LOAD_PLAYER("""
@@ -127,7 +147,8 @@ public enum SQLQuery {
 
     LOAD_PROGRESS("""
                 SELECT * FROM `odq_progression`
-                WHERE player_uuid = ?;
+                WHERE player_uuid = ?
+                ORDER BY player_quest_id ASC;
             """),
 
     LOAD_PLAYER_CATEGORY_STATS("""
