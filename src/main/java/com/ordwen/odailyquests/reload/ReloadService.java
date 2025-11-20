@@ -104,6 +104,7 @@ public class ReloadService {
             ODQReloadEvent.call(plugin, ReloadPhase.RELOAD_COMPLETE);
         } catch (Exception e) {
             PluginLogger.error("An error occurred while reloading the plugin. Please check the logs for details.");
+            PluginLogger.error(e.getMessage());
         }
     }
 }
