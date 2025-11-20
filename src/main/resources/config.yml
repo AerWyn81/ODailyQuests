@@ -321,7 +321,7 @@ shared_mobs: false
 use_wildstacker: false
 
 # If you use RoseStacker on your server to group mobs, set this parameter to "true".
-# Otherwise, quests of type KILL may not progress.
+# Otherwise, quests of type KILL/SHEAR may not progress correctly.
 use_rosestacker: false
 
 # You can define aliases for the player command (/dailyquests) here.
