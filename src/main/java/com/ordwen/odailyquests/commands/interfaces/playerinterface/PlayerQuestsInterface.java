@@ -563,11 +563,6 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
         for (Map.Entry<AbstractQuest, Progression> entry : questsMap.entrySet()) {
             final AbstractQuest quest = entry.getKey();
             final Progression playerProgression = entry.getValue();
-
-            System.out.println("[DEBUG] Quest index=" + i
-                    + " name=" + quest.getQuestName()
-                    + " category=" + quest.getCategoryName());
-
             final ItemStack itemStack = getQuestItem(quest, playerProgression);
             final ItemMeta itemMeta = itemStack.getItemMeta();
             if (itemMeta == null) continue;
@@ -583,10 +578,6 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
             }
 
             final List<Integer> slots = resolveSlotsForQuest(quest.getCategoryName(), i, categoryUsage);
-
-            System.out.println("[DEBUG] -> resolved slots for quest " + quest.getQuestName()
-                    + " (cat=" + quest.getCategoryName() + "): " + slots);
-
             placeItemInInventory(i, slots, itemStack, inventory);
 
             i++;
@@ -727,11 +718,6 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
         if (!categorySlots.isEmpty()) {
             final String key = categoryName.toLowerCase(Locale.ROOT);
             final List<Integer> slots = categorySlots.get(key);
-
-            System.out.println("[DEBUG] resolveSlotsForQuest: questIndex=" + questIndex
-                    + ", categoryName=" + categoryName
-                    + ", key=" + key
-                    + ", slots=" + slots);
 
             if (slots == null || slots.isEmpty()) {
                 PluginLogger.error(ERROR_OCCURRED + "Slot not defined for category " + categoryName + ".");
