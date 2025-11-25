@@ -61,8 +61,9 @@ public class PRerollCommand extends PlayerCommandBase {
 
         if (activeQuests.containsKey(playerName)) {
             final PlayerQuests playerQuests = activeQuests.get(playerName);
+            int count = playerQuests.getRecentlyRolled();
             if (playerQuests.rerollQuest(index - 1, player)) {
-                rerollConfirm(index, player);
+                rerollConfirm(index, count-1, player);
             }
         }
     }
@@ -73,9 +74,9 @@ public class PRerollCommand extends PlayerCommandBase {
      * @param index  the index of the quest that was rerolled
      * @param target the player who had their quest rerolled
      */
-    private void rerollConfirm(int index, Player target) {
+    private void rerollConfirm(int index, int remaining, Player target) {
         final String msg = QuestsMessages.QUEST_REROLLED.toString();
-        if (msg != null) target.sendMessage(msg.replace("%index%", String.valueOf(index)));
+        if (msg != null) target.sendMessage(msg.replace("%index%", String.valueOf(index)).replace("%remaining%", String.valueOf(remaining)));
     }
 
     /**

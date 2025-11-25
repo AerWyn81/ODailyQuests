@@ -43,6 +43,7 @@ public class ConfigFactory {
         configs.put(SafetyMode.class, new SafetyMode(configurationFile));
         configs.put(QuestsPerCategory.class, new QuestsPerCategory(configurationFile));
         configs.put(RerollNotAchieved.class, new RerollNotAchieved(configurationFile));
+        configs.put(RerollMaximum.class, new RerollMaximum(configurationFile));
         configs.put(Synchronization.class, new Synchronization(configurationFile));
         configs.put(RenewInterval.class, new RenewInterval(configurationFile));
         configs.put(RenewTime.class, new RenewTime(configurationFile));

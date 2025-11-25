@@ -64,9 +64,10 @@ public class ARerollCommand extends AdminCommandBase {
 
         if (activeQuests.containsKey(playerName)) {
             final PlayerQuests playerQuests = activeQuests.get(playerName);
+            int count = playerQuests.getRecentlyRolled();
             if (playerQuests.rerollQuest(index - 1, target)) {
                 confirmationToSender(sender, index, playerName);
-                confirmationToTarget(index, target);
+                confirmationToTarget(index, count-1, target);
             }
         }
     }
@@ -93,9 +94,9 @@ public class ARerollCommand extends AdminCommandBase {
      * @param index  the index of the quest that was rerolled
      * @param target the player who had their quest rerolled
      */
-    private void confirmationToTarget(int index, Player target) {
+    private void confirmationToTarget(int index, int remaining, Player target) {
         final String msg = QuestsMessages.QUEST_REROLLED.toString();
-        if (msg != null) target.sendMessage(msg.replace("%index%", String.valueOf(index)));
+        if (msg != null) target.sendMessage(msg.replace("%index%", String.valueOf(index)).replace("%remaining%", String.valueOf(remaining)));
     }
 
     @Override

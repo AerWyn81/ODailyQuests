@@ -49,18 +49,19 @@ public class SaveProgressionSQL {
         long timestamp = playerQuests.getTimestamp();
         int achievedQuests = playerQuests.getAchievedQuests();
         int totalAchievedQuests = playerQuests.getTotalAchievedQuests();
+        int recentRerolls = playerQuests.getRecentlyRolled();
 
         final Map<AbstractQuest, Progression> quests = playerQuests.getQuests();
         final Map<String, Integer> totalAchievedByCategory = playerQuests.getTotalAchievedQuestsByCategory();
 
         if (isServerStopping) {
             Debugger.write("Saving player " + playerName + " progression (server is stopping or migration is in progress).");
-            saveDatas(playerName, playerUuid, timestamp, achievedQuests, totalAchievedQuests, quests, totalAchievedByCategory);
+            saveDatas(playerName, playerUuid, timestamp, achievedQuests, totalAchievedQuests, quests, totalAchievedByCategory, recentRerolls);
         } else {
             ODailyQuests.morePaperLib.scheduling().asyncScheduler().run(() -> {
                 Debugger.write("Saving player " + playerName + " progression asynchronously");
 
-                saveDatas(playerName, playerUuid, timestamp, achievedQuests, totalAchievedQuests, quests, totalAchievedByCategory);
+                saveDatas(playerName, playerUuid, timestamp, achievedQuests, totalAchievedQuests, quests, totalAchievedByCategory, recentRerolls);
             });
         }
     }
@@ -74,8 +75,9 @@ public class SaveProgressionSQL {
      * @param achievedQuests      achieved quests.
      * @param totalAchievedQuests total achieved quests.
      * @param quests              quests.
+     * @param recentRerolls       recently rerolled count.
      */
-    private void saveDatas(String playerName, String playerUuid, long timestamp, int achievedQuests, int totalAchievedQuests, Map<AbstractQuest, Progression> quests, Map<String, Integer> totalAchievedByCategory) {
+    private void saveDatas(String playerName, String playerUuid, long timestamp, int achievedQuests, int totalAchievedQuests, Map<AbstractQuest, Progression> quests, Map<String, Integer> totalAchievedByCategory, int recentRerolls) {
         try (Connection conn = sqlManager.getConnection()) {
             if (conn == null) {
                 PluginLogger.error("Database connection unavailable");
@@ -91,6 +93,7 @@ public class SaveProgressionSQL {
                 playerStatement.setLong(2, timestamp);
                 playerStatement.setInt(3, achievedQuests);
                 playerStatement.setInt(4, totalAchievedQuests);
+                playerStatement.setInt(5, recentRerolls);
                 playerStatement.executeUpdate();
 
                 Debugger.write("Player " + playerName + " data saved");

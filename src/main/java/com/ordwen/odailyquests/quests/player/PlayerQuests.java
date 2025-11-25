@@ -1,11 +1,13 @@
 package com.ordwen.odailyquests.quests.player;
 
 import com.ordwen.odailyquests.ODailyQuests;
+import com.ordwen.odailyquests.api.ODailyQuestsAPI;
 import com.ordwen.odailyquests.api.events.AllCategoryQuestsCompletedEvent;
 import com.ordwen.odailyquests.api.events.CategoryTotalRewardReachedEvent;
 import com.ordwen.odailyquests.api.events.TotalRewardReachedEvent;
 import com.ordwen.odailyquests.configuration.essentials.Debugger;
 import com.ordwen.odailyquests.configuration.essentials.QuestsPerCategory;
+import com.ordwen.odailyquests.configuration.essentials.RerollMaximum;
 import com.ordwen.odailyquests.api.events.AllQuestsCompletedEvent;
 import com.ordwen.odailyquests.configuration.essentials.RerollNotAchieved;
 import com.ordwen.odailyquests.configuration.functionalities.rewards.TotalRewards;
@@ -38,6 +40,7 @@ public class PlayerQuests {
 
     private int achievedQuests;
     private int totalAchievedQuests;
+    private int recentRerolls;
     private final Map<AbstractQuest, Progression> quests;
     private final Map<String, Integer> achievedQuestsByCategory = new HashMap<>();
     private final Map<String, Integer> totalAchievedQuestsByCategory = new HashMap<>();
@@ -169,7 +172,12 @@ public class PlayerQuests {
         final Progression progressionToRemove = this.quests.get(questToRemove);
 
         // Guard: configuration may disallow rerolling already achieved quests.
-        if (!isRerollAllowed(progressionToRemove, player)) {
+        if (!isRerollAllowedProgression(progressionToRemove, player)) {
+            return false;
+        }
+
+        // Guard: configuration may set a maximum amount of rerolled quests.
+        if (!isRerollAllowedMaximum(player)) {
             return false;
         }
 
@@ -200,6 +208,9 @@ public class PlayerQuests {
         this.quests.clear();
         this.quests.putAll(newPlayerQuests);
 
+        // Increment recently rerolled count
+        addRecentReroll(1);
+
         // If the removed quest was previously achieved, adjust counters accordingly.
         updateAchievementsAfterRerollIfNeeded(progressionToRemove, categoryName, questToRemove);
         return true;
@@ -213,9 +224,26 @@ public class PlayerQuests {
      * @param player      player to notify if rerolling is disallowed
      * @return {@code true} if rerolling is allowed; {@code false} otherwise
      */
-    private boolean isRerollAllowed(Progression progression, Player player) {
+    private boolean isRerollAllowedProgression(Progression progression, Player player) {
         if (progression.isAchieved() && RerollNotAchieved.isRerollIfNotAchieved()) {
             final String msg = QuestsMessages.CANNOT_REROLL_IF_ACHIEVED.toString();
+            if (msg != null) player.sendMessage(msg);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Checks whether the player can afford another reroll based on current configuration.
+     * If already rerolled max amount of quests, a feedback message is sent to the player.
+     *
+     * @param player      player to notify if rerolling is disallowed
+     * @return {@code true} if rerolling is allowed; {@code false} otherwise
+     */
+    private boolean isRerollAllowedMaximum(Player player) {
+        int max = RerollMaximum.getMaxRerolls();
+        if (max>0 && recentRerolls>=max) {
+            final String msg = QuestsMessages.CANNOT_REROLL_IF_MAX.toString();
             if (msg != null) player.sendMessage(msg);
             return false;
         }
@@ -370,6 +398,15 @@ public class PlayerQuests {
     }
 
     /**
+     * Set number of recently rerolled quests.
+     *
+     * @param i total number of rerolled quests to set.
+     */
+    public void setRecentRerolls(int recentRerolls) {
+        this.recentRerolls = recentRerolls;
+    }
+
+    /**
      * Set total number of achieved quests for a specific category.
      *
      * @param category the category name.
@@ -396,6 +433,15 @@ public class PlayerQuests {
      */
     public void addTotalAchievedQuests(int i) {
         this.totalAchievedQuests += i;
+    }
+
+    /**
+     * Add number of recent rolled quests.
+     *
+     * @param i number of rerolled quests to add.
+     */
+    public void addRecentReroll(int i) {
+        this.recentRerolls += i;
     }
 
     /**
@@ -449,6 +495,13 @@ public class PlayerQuests {
      */
     public int getTotalAchievedQuests() {
         return this.totalAchievedQuests;
+    }
+
+    /**
+     * Get number of recently rolled quests.
+     */
+    public int getRecentlyRolled() {
+        return this.recentRerolls;
     }
 
     /**

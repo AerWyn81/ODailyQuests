@@ -63,6 +63,7 @@ public class LoadProgressionSQL extends ProgressionLoader {
             long timestamp = 0;
             int achievedQuests = 0;
             int totalAchievedQuests = 0;
+            int recentRerolls = 0;
 
             try (final Connection connection = sqlManager.getConnection();
                  final PreparedStatement preparedStatement = connection.prepareStatement(SQLQuery.LOAD_PLAYER.getQuery())) {
@@ -77,6 +78,7 @@ public class LoadProgressionSQL extends ProgressionLoader {
                         timestamp = resultSet.getLong("player_timestamp");
                         achievedQuests = resultSet.getInt("achieved_quests");
                         totalAchievedQuests = resultSet.getInt("total_achieved_quests");
+                        recentRerolls = resultSet.getInt("recent_rerolls");
 
                         Debugger.write(playerName + " has stored data.");
                     } else {
@@ -90,14 +92,14 @@ public class LoadProgressionSQL extends ProgressionLoader {
             }
 
             if (hasStoredData) {
-                loadStoredData(player, activeQuests, timestamp, totalAchievedQuests, quests, achievedQuests);
+                loadStoredData(player, activeQuests, timestamp, totalAchievedQuests, quests, achievedQuests, recentRerolls);
             } else {
                 QuestLoaderUtils.loadNewPlayerQuests(playerName, activeQuests, new HashMap<>(), 0);
             }
         }, Duration.ofMillis(PlayerDataLoadDelay.getDelay()));
     }
 
-    private void loadStoredData(Player player, Map<String, PlayerQuests> activeQuests, long timestamp, int totalAchievedQuests, LinkedHashMap<AbstractQuest, Progression> quests, int achievedQuests) {
+    private void loadStoredData(Player player, Map<String, PlayerQuests> activeQuests, long timestamp, int totalAchievedQuests, LinkedHashMap<AbstractQuest, Progression> quests, int achievedQuests, int recentRerolls) {
         final String playerName = player.getName();
 
         Debugger.write(playerName + " has data in the database.");
@@ -117,6 +119,7 @@ public class LoadProgressionSQL extends ProgressionLoader {
             playerQuests.setAchievedQuests(achievedQuests);
             playerQuests.setTotalAchievedQuests(totalAchievedQuests);
             playerQuests.setTotalAchievedQuestsByCategory(categoryStats);
+            playerQuests.setRecentRerolls(recentRerolls);
 
             activeQuests.put(playerName, playerQuests);
             if (Logs.isEnabled()) {
