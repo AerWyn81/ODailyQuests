@@ -68,7 +68,7 @@ public class ARerollCommand extends AdminCommandBase {
             int count = playerQuests.getRecentlyRolled();
             if (playerQuests.rerollQuest(index - 1, target, true)) {
                 confirmationToSender(sender, index, playerName);
-                confirmationToTarget(index, RerollMaximum.getMaxRerolls()-(count+1), target);
+                confirmationToTarget(index, RerollMaximum.getMaxRerolls()-count, target);
             }
         }
     }
