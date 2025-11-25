@@ -2,6 +2,7 @@ package com.ordwen.odailyquests.commands.player.handlers;
 
 import com.ordwen.odailyquests.api.commands.player.PlayerCommandBase;
 import com.ordwen.odailyquests.configuration.essentials.QuestsPerCategory;
+import com.ordwen.odailyquests.configuration.essentials.RerollMaximum;
 import com.ordwen.odailyquests.enums.QuestsMessages;
 import com.ordwen.odailyquests.enums.QuestsPermissions;
 import com.ordwen.odailyquests.quests.player.PlayerQuests;
@@ -62,8 +63,8 @@ public class PRerollCommand extends PlayerCommandBase {
         if (activeQuests.containsKey(playerName)) {
             final PlayerQuests playerQuests = activeQuests.get(playerName);
             int count = playerQuests.getRecentlyRolled();
-            if (playerQuests.rerollQuest(index - 1, player)) {
-                rerollConfirm(index, count-1, player);
+            if (playerQuests.rerollQuest(index - 1, player, false)) {
+                rerollConfirm(index, RerollMaximum.getMaxRerolls()-(count+1), player);
             }
         }
     }

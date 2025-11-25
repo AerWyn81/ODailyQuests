@@ -161,11 +161,12 @@ public class PlayerQuests {
      *
      * @param index  zero-based slot of the quest to reroll (must be within bounds of the current ordered keys)
      * @param player the player for whom the reroll is performed (used for permission checks and messaging)
+     * @param bypassMax boolean is true if triggered by an admin, false otherwise (used for bypassing recent reroll logic)
      * @return {@code true} if the reroll succeeded; {@code false} otherwise (e.g., reroll not allowed,
      * no available quest, or category resolution error)
      * @throws IndexOutOfBoundsException if {@code index} is out of range for the current quest list
      */
-    public boolean rerollQuest(int index, Player player) {
+    public boolean rerollQuest(int index, Player player, boolean bypassMax) {
         // Snapshot ordered keys to address a specific slot consistently.
         final List<AbstractQuest> oldQuests = new ArrayList<>(this.quests.keySet());
         final AbstractQuest questToRemove = oldQuests.get(index);
@@ -177,7 +178,7 @@ public class PlayerQuests {
         }
 
         // Guard: configuration may set a maximum amount of rerolled quests.
-        if (!isRerollAllowedMaximum(player)) {
+        if (!bypassMax && !isRerollAllowedMaximum(player)) {
             return false;
         }
 
@@ -209,7 +210,7 @@ public class PlayerQuests {
         this.quests.putAll(newPlayerQuests);
 
         // Increment recently rerolled count
-        addRecentReroll(1);
+        if (!bypassMax) addRecentReroll(1);
 
         // If the removed quest was previously achieved, adjust counters accordingly.
         updateAchievementsAfterRerollIfNeeded(progressionToRemove, categoryName, questToRemove);
