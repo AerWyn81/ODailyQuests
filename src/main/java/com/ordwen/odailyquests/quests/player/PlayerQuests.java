@@ -159,8 +159,8 @@ public class PlayerQuests {
      * <p><strong>Side effects:</strong> Mutates this instance's {@code quests} map,
      * potentially updates achievement counters, and may send feedback messages to the player.
      *
-     * @param index  zero-based slot of the quest to reroll (must be within bounds of the current ordered keys)
-     * @param player the player for whom the reroll is performed (used for permission checks and messaging)
+     * @param index     zero-based slot of the quest to reroll (must be within bounds of the current ordered keys)
+     * @param player    the player for whom the reroll is performed (used for permission checks and messaging)
      * @param bypassMax boolean is true if triggered by an admin, false otherwise (used for bypassing recent reroll logic)
      * @return {@code true} if the reroll succeeded; {@code false} otherwise (e.g., reroll not allowed,
      * no available quest, or category resolution error)
@@ -238,12 +238,12 @@ public class PlayerQuests {
      * Checks whether the player can afford another reroll based on current configuration.
      * If already rerolled max amount of quests, a feedback message is sent to the player.
      *
-     * @param player      player to notify if rerolling is disallowed
+     * @param player player to notify if rerolling is disallowed
      * @return {@code true} if rerolling is allowed; {@code false} otherwise
      */
     private boolean isRerollAllowedMaximum(Player player) {
         int max = RerollMaximum.getMaxRerolls();
-        if (max>0 && recentRerolls>=max) {
+        if (max > 0 && recentRerolls >= max) {
             final String msg = QuestsMessages.CANNOT_REROLL_IF_MAX.toString();
             if (msg != null) player.sendMessage(msg);
             return false;

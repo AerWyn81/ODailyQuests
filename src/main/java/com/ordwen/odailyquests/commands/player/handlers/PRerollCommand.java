@@ -63,7 +63,8 @@ public class PRerollCommand extends PlayerCommandBase {
         if (activeQuests.containsKey(playerName)) {
             final PlayerQuests playerQuests = activeQuests.get(playerName);
             int count = playerQuests.getRecentlyRolled();
-            if (playerQuests.rerollQuest(index - 1, player, false)) {
+            boolean canBypass = player.hasPermission(QuestsPermissions.QUESTS_PLAYER_BYPASS_REROLL_LIMIT.get());
+            if (playerQuests.rerollQuest(index - 1, player, canBypass)) {
                 rerollConfirm(index, RerollMaximum.getMaxRerolls()-(count+1), player);
             }
         }

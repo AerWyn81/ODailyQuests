@@ -3,6 +3,7 @@ package com.ordwen.odailyquests.quests.player.progression;
 import com.ordwen.odailyquests.ODailyQuests;
 import com.ordwen.odailyquests.configuration.essentials.Debugger;
 import com.ordwen.odailyquests.configuration.essentials.JoinMessageDelay;
+import com.ordwen.odailyquests.configuration.essentials.Logs;
 import com.ordwen.odailyquests.configuration.essentials.QuestsPerCategory;
 import com.ordwen.odailyquests.enums.QuestsMessages;
 import com.ordwen.odailyquests.enums.QuestsPermissions;
@@ -15,6 +16,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public abstract class ProgressionLoader {
@@ -23,6 +25,41 @@ public abstract class ProgressionLoader {
 
     protected static final String NEW_QUESTS = "New quests will be drawn.";
     protected static final String CONFIG_CHANGE = "This can happen if the quest has been modified in the config file.";
+
+    public record StoredPlayerProgression(
+            long timestamp,
+            int achievedQuests,
+            int totalAchievedQuests,
+            int recentRerolls
+    ) {
+    }
+
+    protected void registerLoadedPlayerQuests(
+            Player player,
+            Map<String, PlayerQuests> activeQuests,
+            Map<String, Integer> categoryStats,
+            LinkedHashMap<AbstractQuest, Progression> quests,
+            StoredPlayerProgression data,
+            boolean sendStatusMessage
+    ) {
+        final String playerName = player.getName();
+
+        final PlayerQuests playerQuests = new PlayerQuests(data.timestamp(), quests);
+        playerQuests.setAchievedQuests(data.achievedQuests());
+        playerQuests.setTotalAchievedQuests(data.totalAchievedQuests());
+        playerQuests.setTotalAchievedQuestsByCategory(categoryStats);
+        playerQuests.setRecentRerolls(data.recentRerolls());
+
+        activeQuests.put(playerName, playerQuests);
+
+        if (Logs.isEnabled()) {
+            PluginLogger.info(playerName + "'s quests have been loaded.");
+        }
+
+        if (sendStatusMessage) {
+            sendQuestStatusMessage(player, data.achievedQuests(), playerQuests);
+        }
+    }
 
     protected void handleNewPlayer(String playerName, Map<String, PlayerQuests> activeQuests) {
         Debugger.write(PLAYER + playerName + " has no data in progression file.");
