@@ -55,7 +55,7 @@ dependencies {
     implementation 'space.arim.morepaperlib:morepaperlib:0.4.3'
 
     /* lib for antiglitch */
-    compileOnly 'com.jeff-media:custom-block-data:2.2.3'
+    compileOnly 'com.jeff-media:custom-block-data:2.2.5'
 
     /* Mojang auth API for heads */
     compileOnly 'com.mojang:authlib:1.5.25'

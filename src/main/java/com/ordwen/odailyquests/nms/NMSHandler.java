@@ -2,8 +2,11 @@ package com.ordwen.odailyquests.nms;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
+import com.ordwen.odailyquests.configuration.essentials.Debugger;
 import com.ordwen.odailyquests.tools.PluginLogger;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
@@ -11,35 +14,64 @@ import org.bukkit.profile.PlayerTextures;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.Base64;
 import java.util.UUID;
 
-public class NMSHandler {
+public final class NMSHandler {
 
     private static final UUID DUMMY_UUID = UUID.randomUUID();
+    private static final String VERSION = Bukkit.getBukkitVersion().split("-")[0];
 
-    private static NMSHandler instance;
-    private final String version;
+    // null = unknown yet; true = supported; false = not supported
+    private static volatile Boolean hasSetItemModel = null;
 
     private NMSHandler() {
-        this.version = Bukkit.getBukkitVersion().split("-")[0];
+        // Utility class
     }
 
-    public static NMSHandler getInstance() {
-        if (instance == null) {
-            instance = new NMSHandler();
+    public static String getVersion() {
+        return VERSION;
+    }
+
+    public static boolean isVersionAtLeast(String versionPrefix) {
+        return VERSION.compareTo(versionPrefix) >= 0;
+    }
+
+    public static void trySetItemModel(ItemMeta meta, String itemModel) {
+        if (Boolean.FALSE.equals(hasSetItemModel)) return;
+        if (meta == null || itemModel == null || itemModel.isEmpty()) return;
+
+        // Accept "minecraft:foo" or just "foo"
+        final String namespace;
+        final String value;
+        final int colon = itemModel.indexOf(':');
+        if (colon >= 0) {
+            namespace = itemModel.substring(0, colon);
+            value = itemModel.substring(colon + 1);
+        } else {
+            namespace = NamespacedKey.MINECRAFT; // "minecraft"
+            value = itemModel;
         }
 
-        return instance;
-    }
+        final NamespacedKey key = new NamespacedKey(namespace, value);
 
-    public boolean isVersionAtLeast(String versionPrefix) {
-        return version.compareTo(versionPrefix) >= 0;
+        try {
+            final Method m = ItemMeta.class.getMethod("setItemModel", NamespacedKey.class);
+            m.invoke(meta, key);
+            hasSetItemModel = true;
+        } catch (NoSuchMethodException e) {
+            hasSetItemModel = false;
+            Debugger.write("ItemMeta#setItemModel not present; feature disabled.");
+        } catch (Exception e) {
+            hasSetItemModel = true;
+            PluginLogger.error("Failed to set item model '" + namespace + ":" + value + "': " + e.getClass().getSimpleName() + " - " + e.getMessage());
+        }
     }
 
     public static SkullMeta applySkullTexture(SkullMeta skullMeta, String texture) {
-        if (getInstance().isVersionAtLeast("1.18.1")) {
+        if (isVersionAtLeast("1.18.1")) {
             return applyTextureModern(skullMeta, texture);
         } else {
             return applyTextureLegacy(skullMeta, texture);
@@ -52,7 +84,7 @@ public class NMSHandler {
 
         final URL url;
         try {
-            url = new URL("http://textures.minecraft.net/texture/" + texture);
+            url = URI.create("https://textures.minecraft.net/texture/" + texture).toURL();
         } catch (MalformedURLException e) {
             PluginLogger.error("Failed to apply skull texture: " + e.getMessage());
             return skullMeta;
@@ -68,8 +100,8 @@ public class NMSHandler {
     private static SkullMeta applyTextureLegacy(SkullMeta skullMeta, String texture) {
         final GameProfile profile = new GameProfile(DUMMY_UUID, "odq_skull");
         final String toEncode = "{textures:{SKIN:{url:\"https://textures.minecraft.net/texture/" + texture + "\"}}}";
-        final byte[] data = Base64.getEncoder().encodeToString(toEncode.getBytes()).getBytes();
-        profile.getProperties().put("textures", new Property("textures", new String(data)));
+        final String encoded = Base64.getEncoder().encodeToString(toEncode.getBytes());
+        profile.getProperties().put("textures", new Property("textures", encoded));
 
         try {
             final Method setProfileMethod = skullMeta.getClass().getDeclaredMethod("setProfile", GameProfile.class);
@@ -80,9 +112,5 @@ public class NMSHandler {
         }
 
         return skullMeta;
-    }
-
-    public String getVersion() {
-        return version;
     }
 }

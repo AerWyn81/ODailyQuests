@@ -5,6 +5,7 @@ import com.ordwen.odailyquests.commands.interfaces.playerinterface.items.PlayerH
 import com.ordwen.odailyquests.commands.interfaces.playerinterface.items.getters.InterfaceItemGetter;
 import com.ordwen.odailyquests.configuration.functionalities.CompleteOnlyOnClick;
 import com.ordwen.odailyquests.files.implementations.PlayerInterfaceFile;
+import com.ordwen.odailyquests.nms.NMSHandler;
 import com.ordwen.odailyquests.quests.player.PlayerQuests;
 import com.ordwen.odailyquests.quests.player.QuestsManager;
 import com.ordwen.odailyquests.quests.player.progression.Progression;
@@ -29,6 +30,33 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.regex.Pattern;
 
+/**
+ * Handles the loading, preparation and dynamic rendering of the player quests interface.
+ * <p>
+ * This class is responsible for:
+ * <ul>
+ *     <li>Parsing the player interface configuration file</li>
+ *     <li>Loading static items (fillers, buttons, command triggers...)</li>
+ *     <li>Assigning quests to inventory slots</li>
+ *     <li>Replacing placeholders dynamically for each player</li>
+ *     <li>Applying custom model data and item model identifiers</li>
+ *     <li>Building the final inventory instance for a specific player</li>
+ *     <li>Executing associated commands when specific items are clicked</li>
+ * </ul>
+ *
+ * The interface supports:
+ * <ul>
+ *     <li>Custom textures (heads)</li>
+ *     <li>Vanilla materials</li>
+ *     <li>Namespaced items (ItemsAdder/Oraxen/etc.)</li>
+ *     <li>PAPI placeholders in name and lore</li>
+ *     <li>Quest progression placeholders: %progress%, %required%, %progressBar%...</li>
+ * </ul>
+ *
+ * <strong>Important:</strong>
+ * Static items are stored in {@code playerQuestsInventoryBase}, while dynamic quest items
+ * and PAPI-dependent items are merged into a fresh cloned inventory for each player.
+ */
 public class PlayerQuestsInterface extends InterfaceItemGetter {
 
     private static final String ERROR_OCCURRED = "An error occurred when loading the player interface. ";
@@ -70,13 +98,29 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
     private boolean isGlowingEnabled;
     private boolean isStatusDisabled;
 
+    /**
+     * Creates a new player quests interface loader.
+     *
+     * @param playerInterfaceFile the configuration file defining layout, items and settings
+     */
     public PlayerQuestsInterface(PlayerInterfaceFile playerInterfaceFile) {
         this.playerInterfaceFile = playerInterfaceFile;
         this.playerHead = new PlayerHead(playerInterfaceFile);
     }
 
     /**
-     * Load player quests interface.
+     * Loads and parses the entire player interface definition.
+     * <p>
+     * This method:
+     * <ul>
+     *     <li>Reads global variables</li>
+     *     <li>Loads the mapping between quests and interface slots</li>
+     *     <li>Loads static items (fillers, buttons, command items...)</li>
+     *     <li>Handles item models, flags, names and lore</li>
+     * </ul>
+     *
+     * If misconfigured sections are found, appropriate errors are logged
+     * and the interface will be partially or fully disabled.
      */
     public void load() {
         final ConfigurationSection section = playerInterfaceFile.getConfig().getConfigurationSection("player_interface");
@@ -107,9 +151,65 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
     }
 
     /**
-     * Reload player quests interface.
+     * Builds and returns the complete, fully-rendered quests inventory for a specific player.
+     * <p>
+     * The returned inventory:
+     * <ul>
+     *     <li>Starts from the static base inventory</li>
+     *     <li>Applies dynamic placeholders on PAPI-enabled items</li>
+     *     <li>Injects the player's head (if configured)</li>
+     *     <li>Places quest items depending on progression</li>
+     * </ul>
      *
-     * @param interfaceConfig configuration section of the interface.
+     * If the player has no loaded quests (e.g., reload during session), errors are logged.
+     *
+     * @param player the player for whom the inventory is generated
+     * @return the final rendered inventory, or {@code null} if generation failed
+     */
+    public Inventory getPlayerQuestsInterface(Player player) {
+        final Map<String, PlayerQuests> activeQuests = QuestsManager.getActiveQuests();
+
+        if (!activeQuests.containsKey(player.getName())) {
+            PluginLogger.error("Impossible to find the player " + player.getName() + " in the active quests.");
+            PluginLogger.error("It can happen if the player try to open the interface while the server/plugin is reloading.");
+            PluginLogger.error("If the problem persist, please contact the developer.");
+            return null;
+        }
+
+        final PlayerQuests playerQuests = activeQuests.get(player.getName());
+
+        if (QuestLoaderUtils.isTimeToRenew(player, activeQuests)) return getPlayerQuestsInterface(player);
+
+        final Map<AbstractQuest, Progression> questsMap = playerQuests.getQuests();
+
+        final Inventory playerQuestsInventoryIndividual = Bukkit.createInventory(null, size, TextFormatter.format(player, interfaceName));
+        playerQuestsInventoryIndividual.setContents(playerQuestsInventoryBase.getContents());
+
+        if (!papiItems.isEmpty()) {
+            applyPapiItems(player, playerQuests, playerQuestsInventoryIndividual);
+        }
+
+        /* load player head */
+        playerQuestsInventoryIndividual.setContents(playerHead.setPlayerHead(playerQuestsInventoryIndividual, player, size).getContents());
+
+        /* load quests */
+        applyQuestsItems(player, questsMap, playerQuests, playerQuestsInventoryIndividual);
+
+        return playerQuestsInventoryIndividual;
+    }
+
+    /**
+     * Loads global interface-level variables:
+     * <ul>
+     *     <li>Inventory name</li>
+     *     <li>Size</li>
+     *     <li>Text components</li>
+     *     <li>Flags (glowing_if_achieved, disable_status)</li>
+     * </ul>
+     *
+     * Also resets internal caches to support full hot reload.
+     *
+     * @param interfaceConfig the "player_interface" section of the configuration
      */
     private void loadVariables(ConfigurationSection interfaceConfig) {
 
@@ -143,9 +243,16 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
     }
 
     /**
-     * Load quests slots.
+     * Reads the "quests:" section and maps each slot index
+     * to the quest indices that should appear in it.
+     * <p>
+     * Supports:
+     * <ul>
+     *     <li>Single slot → single quest index</li>
+     *     <li>Single slot → list of quest indices</li>
+     * </ul>
      *
-     * @param questsSection configuration section of the quests.
+     * @param questsSection the configuration section defining slot → quest mapping
      */
     private void loadQuestsSlots(ConfigurationSection questsSection) {
         for (String index : questsSection.getKeys(false)) {
@@ -161,9 +268,20 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
     }
 
     /**
-     * Load items.
+     * Parses and loads every static item defined in the "items:" section.
+     * <p>
+     * For each item:
+     * <ul>
+     *     <li>Material detection (vanilla, namespaced, custom head)</li>
+     *     <li>Meta loading (name, lore, CMD, custom_model_data, item_model)</li>
+     *     <li>Flags parsing</li>
+     *     <li>Type-specific behaviour (FILL, CLOSE, COMMAND...)</li>
+     *     <li>Placeholder detection for dynamic updates</li>
+     * </ul>
      *
-     * @param itemsSection configuration section of the items.
+     * Errors in configuration disable that specific item.
+     *
+     * @param itemsSection the "items" config section
      */
     private void loadItems(ConfigurationSection itemsSection) {
         for (String element : itemsSection.getKeys(false)) {
@@ -324,10 +442,10 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
     }
 
     /**
-     * Check if the given text contains placeholders.
+     * Checks if a string contains any placeholder of the form %xxx%.
      *
-     * @param text text to check.
-     * @return true if the text contains placeholders, false otherwise.
+     * @param text the input string
+     * @return true if a placeholder is detected
      */
     private boolean containsPlaceholder(String text) {
         if (text == null) {
@@ -347,37 +465,47 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      * @param flags          item flags to apply to the item.
      */
     private void loadItemType(ConfigurationSection elementSection, ItemStack item, ConfigurationSection itemSection, List<Integer> slots, List<ItemFlag> flags) {
-        final String itemType = elementSection.getString("type");
-        switch (ItemType.valueOf(itemType)) {
-            case FILL -> {
-                final ItemMeta fillItemMeta = item.getItemMeta();
-                if (fillItemMeta == null) return;
+        final String itemTypeRaw = elementSection.getString("type");
+        if (itemTypeRaw == null) {
+            configurationError(elementSection.getName(), "type", "The item type is not defined.");
+            return;
+        }
 
-                fillItemMeta.setDisplayName(ChatColor.RESET + "");
-                if (!flags.isEmpty()) {
-                    fillItemMeta.addItemFlags(flags.toArray(new ItemFlag[0]));
-                }
-                item.setItemMeta(fillItemMeta);
+        final ItemType itemType;
+        try {
+            itemType = ItemType.valueOf(itemTypeRaw);
+        } catch (IllegalArgumentException ex) {
+            configurationError(elementSection.getName(), "type", itemTypeRaw + " is not a valid ItemType.");
+            return;
+        }
+
+        final ItemMeta baseMeta = getItemMeta(item, itemSection, flags);
+
+        switch (itemType) {
+            case FILL -> {
+                if (baseMeta == null) return;
+                baseMeta.setDisplayName(ChatColor.RESET + "");
+                item.setItemMeta(baseMeta);
                 fillItems.add(item);
             }
-
             case CLOSE -> {
-                item.setItemMeta(getItemMeta(item, itemSection, flags));
+                if (baseMeta == null) return;
+                item.setItemMeta(baseMeta);
                 closeItems.add(item);
             }
-
             case PLAYER_COMMAND -> {
+                if (baseMeta == null) return;
                 final List<String> commands = elementSection.getStringList("commands");
-                item.setItemMeta(getItemMeta(item, itemSection, flags));
+                item.setItemMeta(baseMeta);
 
                 for (int slot : slots) {
                     playerCommandsItems.put(slot - 1, commands);
                 }
             }
-
             case CONSOLE_COMMAND -> {
+                if (baseMeta == null) return;
                 final List<String> commands = elementSection.getStringList("commands");
-                item.setItemMeta(getItemMeta(item, itemSection, flags));
+                item.setItemMeta(baseMeta);
 
                 for (int slot : slots) {
                     consoleCommandsItems.put(slot - 1, commands);
@@ -387,51 +515,19 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
     }
 
     /**
-     * Load the player quests inventory for the given player.
+     * Places each quest item (menu or achieved version)
+     * into its configured slots, and applies:
+     * <ul>
+     *     <li>Dynamic display name</li>
+     *     <li>Dynamic lore</li>
+     *     <li>Progression and requirement placeholders</li>
+     *     <li>Glowing effect for achieved quests</li>
+     * </ul>
      *
-     * @param player player to load the inventory.
-     * @return player quests inventory.
-     */
-    public Inventory getPlayerQuestsInterface(Player player) {
-
-        final Map<String, PlayerQuests> activeQuests = QuestsManager.getActiveQuests();
-
-        if (!activeQuests.containsKey(player.getName())) {
-            PluginLogger.error("Impossible to find the player " + player.getName() + " in the active quests.");
-            PluginLogger.error("It can happen if the player try to open the interface while the server/plugin is reloading.");
-            PluginLogger.error("If the problem persist, please contact the developer.");
-            return null;
-        }
-
-        final PlayerQuests playerQuests = activeQuests.get(player.getName());
-
-        if (QuestLoaderUtils.isTimeToRenew(player, activeQuests)) return getPlayerQuestsInterface(player);
-
-        final Map<AbstractQuest, Progression> questsMap = playerQuests.getQuests();
-
-        final Inventory playerQuestsInventoryIndividual = Bukkit.createInventory(null, size, TextFormatter.format(player, interfaceName));
-        playerQuestsInventoryIndividual.setContents(playerQuestsInventoryBase.getContents());
-
-        if (!papiItems.isEmpty()) {
-            applyPapiItems(player, playerQuests, playerQuestsInventoryIndividual);
-        }
-
-        /* load player head */
-        playerQuestsInventoryIndividual.setContents(playerHead.setPlayerHead(playerQuestsInventoryIndividual, player, size).getContents());
-
-        /* load quests */
-        applyQuestsItems(player, questsMap, playerQuests, playerQuestsInventoryIndividual);
-
-        return playerQuestsInventoryIndividual;
-    }
-
-    /**
-     * Apply the quests items to the inventory.
-     *
-     * @param player       player to apply the items.
-     * @param questsMap    quests to apply.
-     * @param playerQuests player quests.
-     * @param inventory    inventory to apply the items.
+     * @param player target player
+     * @param questsMap the player's quests with their progression
+     * @param playerQuests the player's quest container
+     * @param inventory the target inventory
      */
     private void applyQuestsItems(Player player, Map<AbstractQuest, Progression> questsMap, PlayerQuests playerQuests, Inventory inventory) {
         int i = 0;
@@ -460,29 +556,34 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
     }
 
     /**
-     * Get the item of the quest depending on its progression.
+     * Selects the correct menu item depending on quest progression.
+     * The returned stack is always cloned to avoid metadata leaks.
      *
-     * @param quest             the quest.
-     * @param playerProgression the player progression of the quest.
-     * @return the item of the quest.
+     * @param quest the quest definition
+     * @param playerProgression the player's progress
+     * @return the item stack to display
      */
     private ItemStack getQuestItem(AbstractQuest quest, Progression playerProgression) {
         return playerProgression.isAchieved() ? quest.getAchievedItem().clone() : quest.getMenuItem().clone();
     }
 
     /**
-     * Configure the ItemMeta of the item.
+     * Applies dynamic values to the item:
+     * <ul>
+     *     <li>Formatted name</li>
+     *     <li>Lore with placeholders replaced</li>
+     *     <li>Glowing enchant if achieved</li>
+     *     <li>Hidden attributes</li>
+     * </ul>
      *
-     * @param itemMeta     the item meta to configure.
-     * @param quest        the quest of the item.
-     * @param progression  the player progression of the quest.
-     * @param player       the player.
-     * @param playerQuests the player quests.
+     * @param itemMeta item meta to update
+     * @param quest the quest
+     * @param progression the player's progression on that quest
+     * @param player the player
+     * @param playerQuests the quest container (for %achieved% etc.)
      */
     private void configureItemMeta(ItemMeta itemMeta, AbstractQuest quest, Progression progression, Player player, PlayerQuests playerQuests) {
-        final String displayName = TextFormatter.format(player, quest.getQuestName())
-                .replace(REQUIRED, String.valueOf(progression.getRequiredAmount()))
-                .replace(DISPLAY_NAME, DisplayName.getDisplayName(quest, progression.getSelectedRequiredIndex()));
+        final String displayName = TextFormatter.format(player, quest.getQuestName()).replace(REQUIRED, String.valueOf(progression.getRequiredAmount())).replace(DISPLAY_NAME, DisplayName.getDisplayName(quest, progression.getSelectedRequiredIndex()));
 
         itemMeta.setDisplayName(displayName);
 
@@ -493,19 +594,23 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
             itemMeta.addEnchant(Enchantment.SILK_TOUCH, 1, false);
         }
 
-        itemMeta.addAttributeModifier(Attribute.GENERIC_MAX_HEALTH,
-                new AttributeModifier(UUID.randomUUID(), "dummy", 0, AttributeModifier.Operation.ADD_NUMBER));
+        itemMeta.addAttributeModifier(Attribute.GENERIC_MAX_HEALTH, new AttributeModifier(UUID.randomUUID(), "dummy", 0, AttributeModifier.Operation.ADD_NUMBER));
         itemMeta.addItemFlags(ItemFlag.values());
     }
 
     /**
-     * Generate the lore of the item.
+     * Generates the lore for a quest item, inserting:
+     * <ul>
+     *     <li>%progress%</li>
+     *     <li>%required%</li>
+     *     <li>%progressBar%</li>
+     *     <li>%status%</li>
+     *     <li>%drawIn%</li>
+     *     <li>%achieved%</li>
+     *     <li>Manual completion hints when enabled</li>
+     * </ul>
      *
-     * @param quest             the quest of the item.
-     * @param playerProgression the player progression of the quest.
-     * @param player            the player.
-     * @param playerQuests      the player quests.
-     * @return the lore of the item.
+     * @return the updated lore list
      */
     private List<String> generateLore(AbstractQuest quest, Progression playerProgression, Player player, PlayerQuests playerQuests) {
         final List<String> lore = new ArrayList<>(quest.getQuestDesc());
@@ -521,14 +626,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
         final ListIterator<String> it = lore.listIterator();
         while (it.hasNext()) {
             final String str = it.next();
-            String formatted = str
-                    .replace(PROGRESS, progress)
-                    .replace(PROGRESS_BAR, progressBar)
-                    .replace(REQUIRED, required)
-                    .replace(ACHIEVED, achieved)
-                    .replace(DRAW_IN, drawIn)
-                    .replace(DISPLAY_NAME, selected)
-                    .replace(STATUS, status);
+            String formatted = str.replace(PROGRESS, progress).replace(PROGRESS_BAR, progressBar).replace(REQUIRED, required).replace(ACHIEVED, achieved).replace(DRAW_IN, drawIn).replace(DISPLAY_NAME, selected).replace(STATUS, status);
 
             formatted = TextFormatter.format(player, formatted);
             it.set(formatted);
@@ -541,11 +639,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
         if (playerProgression.isAchieved() && !achievedStr.isEmpty() && !isStatusDisabled) {
             lore.add(TextFormatter.format(achievedStr));
         } else if (!progressStr.isEmpty() && !isStatusDisabled) {
-            lore.add(TextFormatter.format(TextFormatter.format(player, progressStr)
-                    .replace(PROGRESS, progress)
-                    .replace(REQUIRED, required)
-                    .replace(PROGRESS_BAR, progressBar)
-            ));
+            lore.add(TextFormatter.format(TextFormatter.format(player, progressStr).replace(PROGRESS, progress).replace(REQUIRED, required).replace(PROGRESS_BAR, progressBar)));
         }
 
         if (shouldDisplayManualCompletionHint(playerProgression)) {
@@ -581,11 +675,19 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
     }
 
     /**
-     * Apply placeholders to items.
+     * Applies PAPI-based placeholders on items that were detected
+     * to contain placeholders in their name or lore.
+     * <p>
+     * This is executed per-player and may vary dynamically for:
+     * <ul>
+     *     <li>%achieved%</li>
+     *     <li>%drawIn%</li>
+     *     <li>Any PlaceholderAPI variable</li>
+     * </ul>
      *
-     * @param player       player to apply placeholders.
-     * @param playerQuests player quests.
-     * @param inventory    player quests inventory.
+     * @param player the player for placeholder context
+     * @param playerQuests the player's quest data
+     * @param inventory the inventory where items must be updated
      */
     private void applyPapiItems(Player player, PlayerQuests playerQuests, Inventory inventory) {
         for (Map.Entry<Integer, ItemStack> entry : papiItems.entrySet()) {
@@ -604,9 +706,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
                 final List<String> lore = meta.getLore();
                 if (lore != null) {
                     for (String str : lore) {
-                        lore.set(lore.indexOf(str), TextFormatter.format(player, str)
-                                .replace(ACHIEVED, String.valueOf(playerQuests.getAchievedQuests()))
-                                .replace(DRAW_IN, TimeRemain.timeRemain(player.getName())));
+                        lore.set(lore.indexOf(str), TextFormatter.format(player, str).replace(ACHIEVED, String.valueOf(playerQuests.getAchievedQuests())).replace(DRAW_IN, TimeRemain.timeRemain(player.getName())));
                     }
                 }
 
@@ -618,12 +718,19 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
     }
 
     /**
-     * Load the ItemMeta of an item.
+     * Loads an item's metadata from configuration:
+     * <ul>
+     *     <li>custom_model_data</li>
+     *     <li>display name</li>
+     *     <li>lore</li>
+     *     <li>item_model (NMSHandler)</li>
+     *     <li>item flags</li>
+     * </ul>
      *
-     * @param itemStack item to load.
-     * @param section   section of the item.
-     * @param flags     item flags to apply to the item.
-     * @return ItemMeta of the item.
+     * @param itemStack the base item
+     * @param section the item configuration section
+     * @param flags parsed item flags to apply
+     * @return the fully configured ItemMeta
      */
     private ItemMeta getItemMeta(ItemStack itemStack, ConfigurationSection section, List<ItemFlag> flags) {
         final ItemMeta meta = itemStack.getItemMeta();
@@ -644,6 +751,11 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
         }
         meta.setLore(lore);
 
+        final String itemModel = section.getString("item_model");
+        if (itemModel != null) {
+            NMSHandler.trySetItemModel(meta, itemModel);
+        }
+
         if (flags != null && !flags.isEmpty()) {
             meta.addItemFlags(flags.toArray(new ItemFlag[0]));
         }
@@ -652,11 +764,16 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
     }
 
     /**
-     * Get the corresponding text for the quest status.
+     * Determines the correct status message for a quest:
+     * <ul>
+     *     <li>Achieved message</li>
+     *     <li>Progress message</li>
+     *     <li>Manual completion hint (if enabled)</li>
+     * </ul>
      *
-     * @param progression the current progression of the quest.
-     * @param player      the player.
-     * @return the achieved message or the progress message.
+     * @param progression quest progression
+     * @param player the player
+     * @return the rendered status string
      */
     private String getQuestStatus(Progression progression, Player player) {
         if (progression.isAchieved()) {
@@ -664,24 +781,16 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
         } else if (shouldDisplayManualCompletionHint(progression)) {
             final String hint = getCompleteGetTypeStr();
             if (hint == null || hint.isEmpty()) {
-                return TextFormatter.format(player, getProgressStr()
-                        .replace(PROGRESS, String.valueOf(progression.getAdvancement()))
-                        .replace(REQUIRED, String.valueOf(progression.getRequiredAmount()))
-                        .replace(PROGRESS_BAR, ProgressBar.getProgressBar(progression.getAdvancement(), progression.getRequiredAmount())));
+                return TextFormatter.format(player, getProgressStr().replace(PROGRESS, String.valueOf(progression.getAdvancement())).replace(REQUIRED, String.valueOf(progression.getRequiredAmount())).replace(PROGRESS_BAR, ProgressBar.getProgressBar(progression.getAdvancement(), progression.getRequiredAmount())));
             }
             return TextFormatter.format(player, hint);
         } else {
-            return TextFormatter.format(player, getProgressStr()
-                    .replace(PROGRESS, String.valueOf(progression.getAdvancement()))
-                    .replace(REQUIRED, String.valueOf(progression.getRequiredAmount()))
-                    .replace(PROGRESS_BAR, ProgressBar.getProgressBar(progression.getAdvancement(), progression.getRequiredAmount())));
+            return TextFormatter.format(player, getProgressStr().replace(PROGRESS, String.valueOf(progression.getAdvancement())).replace(REQUIRED, String.valueOf(progression.getRequiredAmount())).replace(PROGRESS_BAR, ProgressBar.getProgressBar(progression.getAdvancement(), progression.getRequiredAmount())));
         }
     }
 
     private boolean shouldDisplayManualCompletionHint(Progression progression) {
-        return CompleteOnlyOnClick.isEnabled()
-                && !progression.isAchieved()
-                && progression.getAdvancement() >= progression.getRequiredAmount();
+        return CompleteOnlyOnClick.isEnabled() && !progression.isAchieved() && progression.getAdvancement() >= progression.getRequiredAmount();
     }
 
     /**

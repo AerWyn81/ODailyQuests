@@ -71,11 +71,11 @@ public enum QuestsMessages {
     CATEGORY_QUESTS_ACHIEVED("category_quests_achieved", "&aYou have completed all your %category% quests!"),
     NOT_ENOUGH_ITEM("not_enough_items", "&cYou don't have the required amount to complete this quest."),
 
-    WORLD_DISABLED("world_disabled", "&cYou can't complete quests in this world."),
     NOT_REQUIRED_WORLD("not_required_world", "&cYou can't complete this quest in this world."),
     NOT_REQUIRED_REGION("not_required_region", "&cYou can't complete this quest in this region."),
 
     REWARD_COMMAND("reward_command", "&aYou receive some rewards commands."),
+    REWARD_COMMAND_ERROR("reward_command_error", "&cAn error occurred while executing the reward command: &e%command%&c. Please inform an administrator."),
     REWARD_EXP_LEVELS("reward_exp_levels", "&aYou receive &e%rewardAmount% &bEXP &alevels."),
     REWARD_EXP_POINTS("reward_exp_points", "&aYou receive &e%rewardAmount% &bEXP &apoints."),
     REWARD_MONEY("reward_money", "&aYou receive &e%rewardAmount% &b$&a."),

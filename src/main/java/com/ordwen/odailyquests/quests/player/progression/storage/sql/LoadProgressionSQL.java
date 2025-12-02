@@ -38,12 +38,7 @@ public class LoadProgressionSQL extends ProgressionLoader {
         this.sqlManager = sqlManager;
     }
 
-    /**
-     * Load player quests progression.
-     *
-     * @param playerName name of the player.
-     */
-    public void loadProgression(String playerName, Map<String, PlayerQuests> activeQuests) {
+    public void loadProgression(String playerName, Map<String, PlayerQuests> activeQuests, boolean sendStatusMessage) {
         Debugger.write("Entering loadProgression (SQL) method for player " + playerName + ".");
 
         final LinkedHashMap<AbstractQuest, Progression> quests = new LinkedHashMap<>();
@@ -93,6 +88,7 @@ public class LoadProgressionSQL extends ProgressionLoader {
 
             if (hasStoredData) {
                 loadStoredData(player, activeQuests, timestamp, totalAchievedQuests, quests, achievedQuests, recentRerolls);
+                loadStoredData(player, activeQuests, timestamp, totalAchievedQuests, quests, achievedQuests, sendStatusMessage);
             } else {
                 QuestLoaderUtils.loadNewPlayerQuests(playerName, activeQuests, new HashMap<>(), 0);
             }
@@ -100,6 +96,7 @@ public class LoadProgressionSQL extends ProgressionLoader {
     }
 
     private void loadStoredData(Player player, Map<String, PlayerQuests> activeQuests, long timestamp, int totalAchievedQuests, LinkedHashMap<AbstractQuest, Progression> quests, int achievedQuests, int recentRerolls) {
+    private void loadStoredData(Player player, Map<String, PlayerQuests> activeQuests, long timestamp, int totalAchievedQuests, LinkedHashMap<AbstractQuest, Progression> quests, int achievedQuests, boolean sendStatusMessage) {
         final String playerName = player.getName();
 
         Debugger.write(playerName + " has data in the database.");
@@ -126,7 +123,9 @@ public class LoadProgressionSQL extends ProgressionLoader {
                 PluginLogger.info(playerName + "'s quests have been loaded.");
             }
 
-            sendQuestStatusMessage(player, achievedQuests, playerQuests);
+            if (sendStatusMessage) {
+                sendQuestStatusMessage(player, achievedQuests, playerQuests);
+            }
         }
     }
 
@@ -160,7 +159,7 @@ public class LoadProgressionSQL extends ProgressionLoader {
 
                         // schema update check (1 to 2)
                         if (requiredAmount == 0) {
-                           requiredAmountIsZero(playerName);
+                            requiredAmountIsZero(playerName);
                             return false;
                         }
 

@@ -1,5 +1,6 @@
 package com.ordwen.odailyquests.quests.player.progression.clickable.commands;
 
+import com.ordwen.odailyquests.configuration.essentials.Debugger;
 import com.ordwen.odailyquests.enums.QuestsMessages;
 import com.ordwen.odailyquests.quests.conditions.ConditionOperator;
 import com.ordwen.odailyquests.quests.conditions.placeholder.PlaceholderConditionEvaluator;
@@ -50,6 +51,7 @@ public class PlaceholderQuestCommand extends QuestCommand<PlaceholderQuest> {
     @Override
     public void execute() {
         final Player player = context.getPlayer();
+        Debugger.write("Executing PlaceholderQuestCommand for player " + player.getName());
 
         if (!quest.isAllowedToProgress(player, quest)) return;
 
@@ -58,26 +60,29 @@ public class PlaceholderQuestCommand extends QuestCommand<PlaceholderQuest> {
             return;
         }
 
+        Debugger.write("Placeholders before formatting for player " + player.getName() + ": placeholder='" + quest.getPlaceholder() + "', expectedValue='" + quest.getExpectedValue() + "'");
         final String placeholderValue = TextFormatter.format(player, quest.getPlaceholder());
         final String expectedValue = TextFormatter.format(player, quest.getExpectedValue());
+        Debugger.write("Evaluating placeholder condition for player " + player.getName() + ": placeholderValue='" + placeholderValue + "', expectedValue='" + expectedValue + "'");
 
-        final PlaceholderConditionResult result = PlaceholderConditionEvaluator.evaluate(
-                quest.getConditionType(), placeholderValue, expectedValue);
+        final PlaceholderConditionResult result = PlaceholderConditionEvaluator.evaluate(quest.getConditionType(), placeholderValue, expectedValue);
 
         if (result.invalidFormat()) {
+            Debugger.write("Invalid format for placeholder value '" + placeholderValue + "' for player " + player.getName());
             handleValidationError(placeholderValue);
             return;
         }
 
         if (result.matched()) {
+            Debugger.write("Placeholder condition matched for player " + player.getName() + ". Completing quest.");
             completeQuest();
         } else {
+            Debugger.write("Placeholder condition did not match for player " + player.getName() + ".");
             final String message = TextFormatter.format(player, quest.getErrorMessage());
             if (message != null && !message.isEmpty()) {
                 player.sendMessage(message);
             }
         }
-
     }
 
     /**

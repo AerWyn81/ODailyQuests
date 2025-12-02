@@ -38,6 +38,7 @@ public class ConfigFactory {
         configs.put(PlayerDataLoadDelay.class, new PlayerDataLoadDelay(configurationFile));
         configs.put(Debugger.class, new Debugger(configurationFile));
         configs.put(JoinMessageDelay.class, new JoinMessageDelay(configurationFile));
+        configs.put(ReloadMessage.class, new ReloadMessage(configurationFile));
         configs.put(Logs.class, new Logs(configurationFile));
         configs.put(TimestampMode.class, new TimestampMode(configurationFile));
         configs.put(SafetyMode.class, new SafetyMode(configurationFile));

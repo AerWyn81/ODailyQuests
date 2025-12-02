@@ -47,10 +47,14 @@ public class DatabaseManager {
     }
 
     public void loadQuestsForPlayer(String playerName) {
+        loadQuestsForPlayer(playerName, true);
+    }
+
+    public void loadQuestsForPlayer(String playerName, boolean sendStatusMessage) {
         final Map<String, PlayerQuests> activeQuests = QuestsManager.getActiveQuests();
         switch (Database.getMode()) {
-            case YAML -> yamlManager.getLoadProgressionYAML().loadPlayerQuests(playerName, activeQuests);
-            case MYSQL, SQLITE -> sqlManager.getLoadProgressionSQL().loadProgression(playerName, activeQuests);
+            case YAML -> yamlManager.getLoadProgressionYAML().loadPlayerQuests(playerName, activeQuests, sendStatusMessage);
+            case MYSQL, SQLITE -> sqlManager.getLoadProgressionSQL().loadProgression(playerName, activeQuests, sendStatusMessage);
             default ->
                     PluginLogger.error("Impossible to load player quests : the selected storage mode is incorrect !");
         }
