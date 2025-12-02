@@ -401,7 +401,7 @@ public class PlayerQuests {
     /**
      * Set number of recently rerolled quests.
      *
-     * @param i total number of rerolled quests to set.
+     * @param recentRerolls total number of rerolled quests to set.
      */
     public void setRecentRerolls(int recentRerolls) {
         this.recentRerolls = recentRerolls;
