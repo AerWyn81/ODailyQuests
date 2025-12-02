@@ -2,6 +2,7 @@ package com.ordwen.odailyquests.commands.player.handlers;
 
 import com.ordwen.odailyquests.api.commands.player.PlayerCommandBase;
 import com.ordwen.odailyquests.configuration.essentials.QuestsPerCategory;
+import com.ordwen.odailyquests.configuration.essentials.RerollMaximum;
 import com.ordwen.odailyquests.enums.QuestsMessages;
 import com.ordwen.odailyquests.enums.QuestsPermissions;
 import com.ordwen.odailyquests.quests.player.PlayerQuests;
@@ -61,8 +62,9 @@ public class PRerollCommand extends PlayerCommandBase {
 
         if (activeQuests.containsKey(playerName)) {
             final PlayerQuests playerQuests = activeQuests.get(playerName);
-            if (playerQuests.rerollQuest(index - 1, player)) {
-                rerollConfirm(index, player);
+            int count = playerQuests.getRecentlyRolled();
+            if (playerQuests.rerollQuest(index - 1, player, false)) {
+                rerollConfirm(index, RerollMaximum.getMaxRerolls()-(count+1), player);
             }
         }
     }
@@ -73,9 +75,9 @@ public class PRerollCommand extends PlayerCommandBase {
      * @param index  the index of the quest that was rerolled
      * @param target the player who had their quest rerolled
      */
-    private void rerollConfirm(int index, Player target) {
+    private void rerollConfirm(int index, int remaining, Player target) {
         final String msg = QuestsMessages.QUEST_REROLLED.toString();
-        if (msg != null) target.sendMessage(msg.replace("%index%", String.valueOf(index)));
+        if (msg != null) target.sendMessage(msg.replace("%index%", String.valueOf(index)).replace("%remaining%", String.valueOf(remaining)));
     }
 
     /**

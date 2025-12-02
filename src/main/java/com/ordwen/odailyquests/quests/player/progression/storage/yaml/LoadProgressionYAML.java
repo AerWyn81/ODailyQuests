@@ -59,6 +59,7 @@ public class LoadProgressionYAML extends ProgressionLoader {
         final long timestamp = playerSection.getLong(".timestamp");
         final int achievedQuests = playerSection.getInt(".achievedQuests");
         final int totalAchievedQuests = playerSection.getInt(".totalAchievedQuests");
+        final int recentRerolls = playerSection.getInt(".recentRolls");
 
         final Map<String, Integer> totalAchievedQuestsByCategory = new HashMap<>();
         final ConfigurationSection statsSection = playerSection.getConfigurationSection("totalAchievedQuestsByCategory");
@@ -84,6 +85,7 @@ public class LoadProgressionYAML extends ProgressionLoader {
         playerQuests.setAchievedQuests(achievedQuests);
         playerQuests.setTotalAchievedQuests(totalAchievedQuests);
         playerQuests.setTotalAchievedQuestsByCategory(totalAchievedQuestsByCategory);
+        playerQuests.setRecentRerolls(recentRerolls);
 
         activeQuests.put(playerName, playerQuests);
         if (Logs.isEnabled()) {

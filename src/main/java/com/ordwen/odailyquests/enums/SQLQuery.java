@@ -10,6 +10,7 @@ public enum SQLQuery {
                     `player_timestamp` BIGINT NOT NULL,
                     `achieved_quests` TINYINT NOT NULL,
                     `total_achieved_quests` INT NOT NULL,
+                    `recent_rerolls` INT NOT NULL DEFAULT 0,
                     CONSTRAINT `odq_pk_player` PRIMARY KEY (`player_uuid`)
                 );
             """),
@@ -39,12 +40,13 @@ public enum SQLQuery {
             """),
 
     MYSQL_SAVE_PLAYER("""
-                INSERT INTO `odq_player` (`player_uuid`, `player_timestamp`, `achieved_quests`, `total_achieved_quests`)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO `odq_player` (`player_uuid`, `player_timestamp`, `achieved_quests`, `total_achieved_quests`, `recent_rerolls`)
+                VALUES (?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     `player_timestamp` = VALUES(`player_timestamp`),
                     `achieved_quests` = VALUES(`achieved_quests`),
                     `total_achieved_quests` = VALUES(`total_achieved_quests`);
+                    `recent_rerolls` = VALUES(`recent_rerolls`);
             """),
 
     MYSQL_SAVE_PROGRESS("""
@@ -73,6 +75,7 @@ public enum SQLQuery {
                     `player_timestamp` INTEGER NOT NULL,
                     `achieved_quests` INTEGER NOT NULL,
                     `total_achieved_quests` INTEGER NOT NULL,
+                    `recent_rerolls` INTEGER NOT NULL DEFAULT 0,
                     PRIMARY KEY (`player_uuid`)
                 );
             """),
@@ -101,8 +104,8 @@ public enum SQLQuery {
             """),
 
     SQLITE_SAVE_PLAYER("""
-                INSERT OR REPLACE INTO `odq_player` (`player_uuid`, `player_timestamp`, `achieved_quests`, `total_achieved_quests`)
-                VALUES (?, ?, ?, ?);
+                INSERT OR REPLACE INTO `odq_player` (`player_uuid`, `player_timestamp`, `achieved_quests`, `total_achieved_quests`, `recent_rerolls`)
+                VALUES (?, ?, ?, ?, ?);
             """),
 
     SQLITE_SAVE_PROGRESS("""
@@ -118,7 +121,7 @@ public enum SQLQuery {
     // Common queries //
 
     LOAD_PLAYER("""
-                SELECT player_timestamp, achieved_quests, total_achieved_quests FROM `odq_player`
+                SELECT player_timestamp, achieved_quests, total_achieved_quests, recent_rerolls FROM `odq_player`
                 WHERE player_uuid = ?;
             """),
 

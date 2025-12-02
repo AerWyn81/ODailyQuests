@@ -310,6 +310,9 @@ complete_only_on_click: false
 # Determines if the quest can be rerolled even if it has already been completed, when using the reroll command.
 reroll_only_if_not_achieved: false
 
+# Determines max amount of times a player can reroll their quest in a day
+reroll_maximum: -1
+
 # If you are using MythicMobs, you can set this parameter to "true" to share the mobs between players.
 #
 # It means that if someone kill a mob, the quest progression will be updated for all players
