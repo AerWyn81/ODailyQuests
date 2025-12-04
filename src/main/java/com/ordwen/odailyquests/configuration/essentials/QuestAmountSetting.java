@@ -109,9 +109,4 @@ public final class QuestAmountSetting {
     public Integer getStaticAmount() {
         return staticAmount;
     }
-
-    public String getRawValue() {
-        return rawValue;
-    }
 }
-

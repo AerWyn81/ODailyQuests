@@ -3,6 +3,7 @@ package com.ordwen.odailyquests.quests.player.progression.storage.sql;
 import com.ordwen.odailyquests.ODailyQuests;
 import com.ordwen.odailyquests.configuration.essentials.Debugger;
 import com.ordwen.odailyquests.configuration.essentials.PlayerDataLoadDelay;
+import com.ordwen.odailyquests.configuration.essentials.QuestsPerCategory;
 import com.ordwen.odailyquests.enums.SQLQuery;
 import com.ordwen.odailyquests.quests.player.PlayerQuests;
 import com.ordwen.odailyquests.quests.player.progression.Progression;
@@ -145,7 +146,7 @@ public class LoadProgressionSQL extends ProgressionLoader {
                     return handleNoQuestRows(playerName);
                 }
 
-                final int maxQuests = QuestsPerCategory.getTotalQuestsAmount();
+                final int maxQuests = QuestsPerCategory.getTotalQuestsAmount(player);
                 do {
                     if (!loadSingleQuestRow(resultSet, playerName, quests, id)) {
                         return false;
@@ -153,13 +154,8 @@ public class LoadProgressionSQL extends ProgressionLoader {
                     id++;
                 } while (resultSet.next() && id <= maxQuests);
 
-                if (resultSet.next()) {
-                    logExcessQuests(playerName);
-                }
-
-                if (hasMissingQuests(playerName, id, maxQuests)) {
-                    return false;
-                }
+                final int loadedQuests = id - 1;
+                Debugger.write("Loaded " + loadedQuests + " quests for " + playerName + " (config max: " + maxQuests + ").");
             }
         } catch (final SQLException e) {
             error(playerName, e.getMessage());
@@ -174,27 +170,8 @@ public class LoadProgressionSQL extends ProgressionLoader {
      * Handle case when no quest rows are returned.
      */
     private boolean handleNoQuestRows(String playerName) {
-        // current behavior: if no rows, leave id = 1, so id - 1 = 0 < totalQuests -> warn + false.
-        final int loadedQuests = 0;
-        final int expectedQuests = QuestsPerCategory.getTotalQuestsAmount();
-
-        if (loadedQuests < expectedQuests) {
-            PluginLogger.warn("Player " + playerName + " has less quests than expected. New quests will be drawn.");
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Check if the player has fewer quests than expected.
-     */
-    private boolean hasMissingQuests(String playerName, int currentId, int maxQuests) {
-        final int loadedQuests = currentId - 1;
-        if (loadedQuests < maxQuests) {
-            PluginLogger.warn("Player " + playerName + " has less quests than expected. New quests will be drawn.");
-            return true;
-        }
-        return false;
+        PluginLogger.warn("Player " + playerName + " has no stored quests. New quests will be drawn.");
+        return false; // always false: no quests = regenerate a full set
     }
 
     /**

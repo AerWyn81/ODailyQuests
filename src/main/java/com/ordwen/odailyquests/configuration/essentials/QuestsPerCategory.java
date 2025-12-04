@@ -12,13 +12,11 @@ import org.bukkit.entity.Player;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class QuestsPerCategory implements IConfigurable {
 
     private final ConfigurationFile configurationFile;
     private final Map<String, QuestAmountSetting> questsAmounts = new LinkedHashMap<>();
-    private int totalStaticQuestsAmount;
 
     public QuestsPerCategory(ConfigurationFile configurationFile) {
         this.configurationFile = configurationFile;
@@ -27,8 +25,6 @@ public class QuestsPerCategory implements IConfigurable {
     @Override
     public void load() {
         final FileConfiguration config = configurationFile.getConfig();
-
-        totalStaticQuestsAmount = 0;
         questsAmounts.clear();
 
         final ConfigurationSection section = config.getConfigurationSection("quests_per_category");
@@ -50,9 +46,6 @@ public class QuestsPerCategory implements IConfigurable {
             try {
                 final QuestAmountSetting setting = QuestAmountSetting.from(category, rawValue);
                 questsAmounts.put(category, setting);
-                if (!setting.isDynamic()) {
-                    totalStaticQuestsAmount += Objects.requireNonNull(setting.getStaticAmount());
-                }
             } catch (IllegalArgumentException exception) {
                 PluginLogger.error("Impossible to load quests. Disabling plugin.");
                 Bukkit.getPluginManager().disablePlugin(ODailyQuests.INSTANCE);
@@ -72,8 +65,12 @@ public class QuestsPerCategory implements IConfigurable {
         return ConfigFactory.getConfig(QuestsPerCategory.class);
     }
 
-    public static int getTotalQuestsAmount() {
-        return getInstance().totalStaticQuestsAmount;
+    public static int getTotalQuestsAmount(Player player) {
+        int total = 0;
+        for (QuestAmountSetting setting : getInstance().questsAmounts.values()) {
+            total += setting.resolve(player);
+        }
+        return total;
     }
 
     public static Map<String, QuestAmountSetting> getAllSettings() {
