@@ -5,6 +5,7 @@ import com.ordwen.odailyquests.tools.PluginLogger;
 import com.ordwen.odailyquests.tools.updater.database.updates.Update0to1;
 import com.ordwen.odailyquests.tools.updater.database.updates.Update1to2;
 import com.ordwen.odailyquests.tools.updater.database.updates.Update2to3;
+
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.LinkedHashMap;

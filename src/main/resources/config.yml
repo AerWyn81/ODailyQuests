@@ -314,6 +314,9 @@ complete_only_on_click: false
 # Determines if the quest can be rerolled even if it has already been completed, when using the reroll command.
 reroll_only_if_not_achieved: false
 
+# Determines max amount of times a player can reroll their quest in a day
+reroll_maximum: -1
+
 # If you are using MythicMobs, you can set this parameter to "true" to share the mobs between players.
 #
 # It means that if someone kill a mob, the quest progression will be updated for all players
@@ -325,7 +328,7 @@ shared_mobs: false
 use_wildstacker: false
 
 # If you use RoseStacker on your server to group mobs, set this parameter to "true".
-# Otherwise, quests of type KILL may not progress.
+# Otherwise, quests of type KILL/SHEAR may not progress correctly.
 use_rosestacker: false
 
 # You can define aliases for the player command (/dailyquests) here.

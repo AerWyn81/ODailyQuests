@@ -34,12 +34,14 @@ public class SaveProgressionYAML {
         final long timestamp = playerQuests.getTimestamp();
         final int achievedQuests = playerQuests.getAchievedQuests();
         final int totalAchievedQuests = playerQuests.getTotalAchievedQuests();
+        final int recentRerolls = playerQuests.getRecentlyRolled();
 
         final Map<AbstractQuest, Progression> quests = playerQuests.getQuests();
 
         config.set(playerUuid + ".timestamp", timestamp);
         config.set(playerUuid + ".achievedQuests", achievedQuests);
         config.set(playerUuid + ".totalAchievedQuests", totalAchievedQuests);
+        config.set(playerUuid + ".recentRerolls", recentRerolls);
 
         int index = 1;
         for (Map.Entry<AbstractQuest, Progression> entry : quests.entrySet()) {

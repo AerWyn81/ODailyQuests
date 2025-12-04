@@ -30,6 +30,7 @@ public class SaveProgressionSQL {
             long timestamp,
             int achievedQuests,
             int totalAchievedQuests,
+            int recentRerolls,
             Map<AbstractQuest, Progression> quests,
             Map<String, Integer> totalAchievedByCategory
     ) {
@@ -64,6 +65,7 @@ public class SaveProgressionSQL {
         final long timestamp = playerQuests.getTimestamp();
         final int achievedQuests = playerQuests.getAchievedQuests();
         final int totalAchievedQuests = playerQuests.getTotalAchievedQuests();
+        final int recentRerolls = playerQuests.getRecentlyRolled();
 
         final Map<AbstractQuest, Progression> quests = playerQuests.getQuests();
         final Map<String, Integer> totalAchievedByCategory = playerQuests.getTotalAchievedQuestsByCategory();
@@ -74,6 +76,7 @@ public class SaveProgressionSQL {
                 timestamp,
                 achievedQuests,
                 totalAchievedQuests,
+                recentRerolls,
                 quests,
                 totalAchievedByCategory
         );
@@ -117,6 +120,7 @@ public class SaveProgressionSQL {
         final long timestamp = data.timestamp();
         final int achievedQuests = data.achievedQuests();
         final int totalAchievedQuests = data.totalAchievedQuests();
+        final int recentRerolls = data.recentRerolls();
 
         Map<AbstractQuest, Progression> quests = data.quests();
         Map<String, Integer> totalAchievedByCategory = data.totalAchievedByCategory();
@@ -157,6 +161,7 @@ public class SaveProgressionSQL {
                 playerStatement.setLong(2, timestamp);
                 playerStatement.setInt(3, achievedQuests);
                 playerStatement.setInt(4, totalAchievedQuests);
+                playerStatement.setInt(5, recentRerolls);
                 playerStatement.executeUpdate();
 
                 Debugger.write("Player " + playerName + " data saved");

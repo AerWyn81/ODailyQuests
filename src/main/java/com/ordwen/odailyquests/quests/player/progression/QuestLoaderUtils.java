@@ -90,6 +90,7 @@ public class QuestLoaderUtils {
 
         playerQuests.setTotalAchievedQuests(totalAchievedQuests);
         playerQuests.setTotalAchievedQuestsByCategory(totalAchievedQuestsByCategory);
+        playerQuests.setRecentRerolls(0);
 
         final String msg = QuestsMessages.QUESTS_RENEWED.getMessage(player);
         if (msg != null && player.hasPermission(QuestsPermissions.QUESTS_PROGRESS.get())) {
