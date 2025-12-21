@@ -5,7 +5,6 @@ import com.ordwen.odailyquests.commands.interfaces.playerinterface.items.PlayerH
 import com.ordwen.odailyquests.commands.interfaces.playerinterface.items.getters.InterfaceItemGetter;
 import com.ordwen.odailyquests.configuration.functionalities.CompleteOnlyOnClick;
 import com.ordwen.odailyquests.files.implementations.PlayerInterfaceFile;
-import com.ordwen.odailyquests.nms.NMSHandler;
 import com.ordwen.odailyquests.quests.player.PlayerQuests;
 import com.ordwen.odailyquests.quests.player.QuestsManager;
 import com.ordwen.odailyquests.quests.player.progression.Progression;
@@ -813,11 +812,6 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
             lore.set(lore.indexOf(str), TextFormatter.format(str));
         }
         meta.setLore(lore);
-
-        final String itemModel = section.getString("item_model");
-        if (itemModel != null) {
-            NMSHandler.trySetItemModel(meta, itemModel);
-        }
 
         if (flags != null && !flags.isEmpty()) {
             meta.addItemFlags(flags.toArray(new ItemFlag[0]));
