@@ -169,7 +169,7 @@ public class QuestsManager implements Listener {
             for (int i = 0; i < requiredAmount; i++) {
                 final AbstractQuest quest = getRandomQuestForPlayer(quests.keySet(), category, player);
                 if (quest == null) {
-                    PluginLogger.warn("Not enough quests available to assign to " + player.getName() + " in category " + categoryName + ".");
+                    Debugger.write("Not enough quests available to assign to " + player.getName() + " in category " + categoryName + ".");
                     break;
                 }
 
