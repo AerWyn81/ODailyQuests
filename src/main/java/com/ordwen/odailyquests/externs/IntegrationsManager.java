@@ -7,6 +7,7 @@ import com.ordwen.odailyquests.externs.hooks.items.KGeneratorsHook;
 import com.ordwen.odailyquests.externs.hooks.placeholders.PAPIExpansion;
 import com.ordwen.odailyquests.externs.hooks.points.PlayerPointsHook;
 import com.ordwen.odailyquests.externs.hooks.points.TokenManagerHook;
+import com.ordwen.odailyquests.tools.PluginLogger;
 import com.ordwen.odailyquests.tools.PluginUtils;
 
 public class IntegrationsManager {
@@ -21,12 +22,19 @@ public class IntegrationsManager {
      * Load all dependencies.
      */
     public void loadAllDependencies() {
-        loadVault();
-        loadPointsPlugin();
-        loadPAPI();
-        loadKGenerators();
+        safeHook("Vault", this::loadVault);
+        safeHook("PlayerPoints/TokenManager", this::loadPointsPlugin);
+        safeHook("PlaceholderAPI", this::loadPAPI);
+        safeHook("KGenerators", this::loadKGenerators);
+        safeHook("Protection", () -> new Protection().load());
+    }
 
-        new Protection().load();
+    private void safeHook(String name, Runnable hook) {
+        try {
+            hook.run();
+        } catch (Exception err) {
+            PluginLogger.warn("Failed to hook into " + name + ". Is the plugin installed and up to date?");
+        }
     }
 
     /**
