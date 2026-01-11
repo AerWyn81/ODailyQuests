@@ -112,8 +112,7 @@ public final class NMSHandler {
     /**
      * Indicates whether the provided {@link ItemMeta} declares a custom {@code item_model}.
      *
-     * <p>Uses reflection to remain compatible with server versions that do not provide
-     * {@link ItemMeta#hasItemModel()}.</p>
+     * <p>Uses reflection to remain compatible with server versions that do not provide ItemMeta#hasItemModel().</p>
      *
      * @param meta item metadata to inspect
      * @return {@code true} if an item model is present; {@code false} otherwise or on unsupported versions
