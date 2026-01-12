@@ -7,8 +7,27 @@ import com.ordwen.odailyquests.quests.player.progression.storage.sql.SaveProgres
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
+/**
+ * SQL manager implementation for MySQL databases.
+ * <p>
+ * This class configures and manages a HikariCP connection pool
+ * dedicated to MySQL and wires the SQL-based progression loaders
+ * and savers used by the quest system.
+ * <p>
+ * Database connections, table initialization, and connection testing
+ * are performed during construction.
+ */
 public class MySQLManager extends SQLManager {
 
+    /**
+     * Creates a new MySQL manager and initializes the database layer.
+     * <p>
+     * This constructor:
+     * - instantiates SQL progression loaders and savers
+     * - initializes the HikariCP connection pool
+     * - tests the database connection
+     * - ensures required tables exist
+     */
     public MySQLManager() {
         super.loadProgressionSQL = new LoadProgressionSQL(this);
         super.saveProgressionSQL = new SaveProgressionSQL(this);
@@ -17,9 +36,13 @@ public class MySQLManager extends SQLManager {
     }
 
     /**
-     * Connect to database.
+     * Initializes the HikariCP connection pool for MySQL.
+     * <p>
+     * Pool settings such as maximum pool size, connection timeout,
+     * lifetime, and leak detection are configured here.
+     * The resulting data source is stored in the parent SQL manager.
      */
-    public void initHikariCP(){
+    public void initHikariCP() {
         final HikariConfig hikariConfig = new HikariConfig();
 
         hikariConfig.setMaximumPoolSize(10);
@@ -34,7 +57,12 @@ public class MySQLManager extends SQLManager {
     }
 
     /**
-     * Init database.
+     * Initializes the database layer.
+     * <p>
+     * This method:
+     * - creates the HikariCP data source
+     * - validates the database connection
+     * - creates or updates required tables
      */
     public void setupDatabase() {
         initHikariCP();
@@ -44,10 +72,11 @@ public class MySQLManager extends SQLManager {
     }
 
     /**
-     * Setup JdbcUrl.
-     * @return JdbcUrl.
+     * Builds the JDBC connection URL for the MySQL database.
+     *
+     * @return the JDBC URL used by the connection pool
      */
-    private String toUri(){
+    private String toUri() {
         return "jdbc:mysql://" + Database.getHost() + ":" + Database.getPort() + "/" + Database.getName();
     }
 

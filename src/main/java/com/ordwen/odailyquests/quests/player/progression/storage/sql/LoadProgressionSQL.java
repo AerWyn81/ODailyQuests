@@ -23,20 +23,42 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Loads a player's quest progression from an SQL database.
+ * <p>
+ * This loader queries the stored player metadata (timestamp, achieved quests, rerolls),
+ * then either restores the saved quests and their progression or regenerates a new set
+ * when no valid data is found or when the stored data is outdated.
+ * <p>
+ * The SQL work is executed asynchronously after a configurable delay to avoid
+ * blocking the server thread during login bursts or heavy IO.
+ */
 public class LoadProgressionSQL extends ProgressionLoader {
 
     /* instance of SQLManager */
     private final SQLManager sqlManager;
 
     /**
-     * Constructor.
+     * Creates a new SQL-based progression loader.
      *
-     * @param sqlManager instance of MySQLManager.
+     * @param sqlManager the SQL manager used to get database connections and execute queries
      */
     public LoadProgressionSQL(SQLManager sqlManager) {
         this.sqlManager = sqlManager;
     }
 
+    /**
+     * Loads a player's progression from the SQL database.
+     * <p>
+     * The loading is scheduled asynchronously after the configured delay.
+     * If the player is no longer online when the task runs, the loading is aborted.
+     * <p>
+     * If no valid stored data is found, new quests are generated for the player.
+     *
+     * @param playerName        the player's name
+     * @param activeQuests      the current active quests map to populate/update
+     * @param sendStatusMessage whether a status message should be sent to the player (when supported by the loader flow)
+     */
     public void loadProgression(String playerName, Map<String, PlayerQuests> activeQuests, boolean sendStatusMessage) {
         Debugger.write("Entering loadProgression (SQL) method for player " + playerName + ".");
 
@@ -98,6 +120,18 @@ public class LoadProgressionSQL extends ProgressionLoader {
         }, Duration.ofMillis(PlayerDataLoadDelay.getDelay()));
     }
 
+    /**
+     * Restores progression using the stored player data.
+     * <p>
+     * If the stored timestamp indicates the quests must be renewed, a fresh set of quests is generated.
+     * If stored quest rows are missing or inconsistent with the current configuration, a fresh set is generated.
+     *
+     * @param player            the online player instance
+     * @param activeQuests      the current active quests map to populate/update
+     * @param data              stored player metadata loaded from the database
+     * @param quests            the target map that will be filled with loaded quests and their progression
+     * @param sendStatusMessage whether a status message should be sent to the player (when supported by the loader flow)
+     */
     private void loadStoredData(
             Player player,
             Map<String, PlayerQuests> activeQuests,
@@ -125,10 +159,16 @@ public class LoadProgressionSQL extends ProgressionLoader {
     }
 
     /**
-     * Load player quests.
+     * Loads the player's stored quests and their progression rows from the database.
+     * <p>
+     * The method validates each row against the current quest definitions and configuration
+     * (required amount, selected required index, schema compatibility checks).
+     * <p>
+     * When the stored rows are missing or invalid, the caller should regenerate a new quest set.
      *
-     * @param player player.
-     * @param quests list of player quests.
+     * @param player the player whose quests are being loaded
+     * @param quests the target map that will be populated with loaded quests and progressions
+     * @return true if quests were successfully loaded and validated, false if the data should be treated as invalid
      */
     private boolean loadPlayerQuests(Player player, LinkedHashMap<AbstractQuest, Progression> quests) {
         final String playerName = player.getName();
@@ -167,7 +207,10 @@ public class LoadProgressionSQL extends ProgressionLoader {
     }
 
     /**
-     * Handle case when no quest rows are returned.
+     * Handles the case where the progression query returns no quest rows for the player.
+     *
+     * @param playerName the player's name
+     * @return always false to indicate that quests must be regenerated
      */
     private boolean handleNoQuestRows(String playerName) {
         PluginLogger.warn("Player " + playerName + " has no stored quests. New quests will be drawn.");
@@ -175,7 +218,21 @@ public class LoadProgressionSQL extends ProgressionLoader {
     }
 
     /**
-     * Load and validate a single quest row from the ResultSet.
+     * Loads and validates a single quest progression row.
+     * <p>
+     * This method:
+     * - reads quest identifiers and progression data from the current ResultSet row
+     * - runs schema compatibility checks
+     * - resolves the quest definition from loaded categories
+     * - validates stored values against the quest definition
+     * - inserts a Progression entry into the provided map when valid
+     *
+     * @param resultSet  the result set positioned on the row to read
+     * @param playerName the player's name (used for logs and error reporting)
+     * @param quests     the target map to populate
+     * @param questId    the sequential quest id used to resolve the quest definition within the player's drawn quests
+     * @return true if the row is valid and was loaded, false if the stored data is inconsistent and must be regenerated
+     * @throws SQLException if a JDBC access error occurs while reading the row
      */
     private boolean loadSingleQuestRow(ResultSet resultSet, String playerName, LinkedHashMap<AbstractQuest, Progression> quests, int questId) throws SQLException {
         final int questIndex = resultSet.getInt("quest_index");
@@ -214,7 +271,12 @@ public class LoadProgressionSQL extends ProgressionLoader {
     }
 
     /**
-     * Validate that the required amount matches the quest definition when not random.
+     * Validates that the stored required amount matches the quest definition when the quest does not use a random required amount.
+     *
+     * @param quest          the quest definition resolved from the configuration
+     * @param requiredAmount the stored required amount
+     * @param playerName     the player's name (used for logs and error reporting)
+     * @return true if the stored value is compatible with the quest definition, false otherwise
      */
     private boolean isRequiredAmountValid(AbstractQuest quest, int requiredAmount, String playerName) {
         if (!quest.isRandomRequiredAmount() && requiredAmount != Integer.parseInt(quest.getRequiredAmountRaw())) {
@@ -225,7 +287,16 @@ public class LoadProgressionSQL extends ProgressionLoader {
     }
 
     /**
-     * Add the quest progression entry to the map.
+     * Adds a progression entry to the loaded quests map.
+     * <p>
+     * If the stored selected required index is present (non -1), it is applied to the progression.
+     *
+     * @param quests           the target map to populate
+     * @param quest            the quest definition
+     * @param requiredAmount   the required amount for completion
+     * @param advancement      the current advancement value
+     * @param isAchieved       whether the quest is marked as achieved
+     * @param selectedRequired the selected required index, or -1 when not applicable
      */
     private void addQuestProgression(LinkedHashMap<AbstractQuest, Progression> quests, AbstractQuest quest, int requiredAmount, int advancement, boolean isAchieved, int selectedRequired) {
         final Progression progression = new Progression(requiredAmount, advancement, isAchieved);
@@ -237,10 +308,13 @@ public class LoadProgressionSQL extends ProgressionLoader {
     }
 
     /**
-     * Load player category stats.
+     * Loads per-category achieved quest statistics for a player.
+     * <p>
+     * The returned map associates a category identifier/name with the total number of achieved quests for that category.
+     * Missing or failed queries return an empty map.
      *
-     * @param playerUuid UUID of the player.
-     * @return Map of category stats.
+     * @param playerUuid the player's UUID as a string
+     * @return a map of category name to achieved quests count
      */
     private Map<String, Integer> loadCategoryStats(String playerUuid) {
         final Map<String, Integer> categoryStats = new HashMap<>();

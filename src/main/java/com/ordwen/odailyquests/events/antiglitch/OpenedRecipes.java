@@ -6,6 +6,10 @@ import java.util.HashMap;
 
 public class OpenedRecipes {
 
+    private OpenedRecipes() {
+        // Utility class
+    }
+
     /* Stock all recipes and their current uses from open villagers menus */
     private static final HashMap<MerchantRecipe, Integer> openRecipes = new HashMap<>();
 
