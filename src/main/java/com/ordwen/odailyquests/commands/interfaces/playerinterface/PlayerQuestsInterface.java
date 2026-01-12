@@ -349,11 +349,16 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
             addIntoBaseInventory(element, slots, item);
 
             /* close on click (optional) */
-            if (elementSection.getBoolean("close_on_click", false)) {
-                for (int slot : slots) {
-                    if (slot > 0 && slot <= size) {
-                        closeOnClickSlots.add(slot - 1); // internal is 0-based
-                    }
+            loadCloseOnClickItems(elementSection, slots);
+        }
+    }
+
+    private void loadCloseOnClickItems(ConfigurationSection elementSection, List<Integer> slots) {
+        /* close on click (optional) */
+        if (elementSection.getBoolean("close_on_click", false)) {
+            for (int slot : slots) {
+                if (slot > 0 && slot <= size) {
+                    closeOnClickSlots.add(slot - 1); // internal is 0-based
                 }
             }
         }

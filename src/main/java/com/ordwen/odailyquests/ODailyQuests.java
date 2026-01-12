@@ -283,11 +283,11 @@ public final class ODailyQuests extends JavaPlugin {
 
         PluginLogger.info("Checking for update...");
         new UpdateChecker(100990).getVersion(version -> {
-            String currentVersion = this.getDescription().getVersion();
-            boolean isSnapshot = currentVersion.contains("SNAPSHOT");
+            final String currentVersion = this.getDescription().getVersion();
+            final boolean isSnapshot = currentVersion.contains("SNAPSHOT");
 
-            String cleanCurrentVersion = currentVersion.replaceAll("^([0-9]+\\.[0-9]+\\.[0-9]+).*$", "$1");
-            int comparison = UpdateChecker.compareVersions(cleanCurrentVersion, version);
+            final String cleanCurrentVersion = currentVersion.replaceAll("^(\\d+\\.\\d+\\.\\d+).*$", "$1");
+            final int comparison = UpdateChecker.compareVersions(cleanCurrentVersion, version);
 
             if (isSnapshot) {
                 PluginLogger.warn("You're using a snapshot version: " + currentVersion);

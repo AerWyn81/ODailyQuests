@@ -29,17 +29,18 @@ public class FishQuest extends ItemQuest {
             return super.isRequiredItem(item.getItemStack(), progression);
         }
 
-        if (PluginUtils.isPluginEnabled("CustomFishing") && provided instanceof FishingLootSpawnEvent event) {
-            if (event.getEntity() instanceof Item item) {
+        if (PluginUtils.isPluginEnabled("CustomFishing")
+                && provided instanceof FishingLootSpawnEvent event
+                && event.getEntity() instanceof Item item) {
                 return super.isRequiredItem(item.getItemStack(), progression);
             }
-        }
 
-        if (PluginUtils.isPluginEnabled("MMOCore") && provided instanceof CustomPlayerFishEvent event) {
-            if (event.getCaught() != null) {
+        if (PluginUtils.isPluginEnabled("MMOCore")
+                && provided instanceof CustomPlayerFishEvent event
+                && event.getCaught() != null) {
                 return super.isRequiredItem(event.getCaught(), progression);
             }
-        }
+
 
         return false;
     }

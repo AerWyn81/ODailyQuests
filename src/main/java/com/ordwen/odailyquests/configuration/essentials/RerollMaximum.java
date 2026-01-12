@@ -7,7 +7,7 @@ import com.ordwen.odailyquests.files.implementations.ConfigurationFile;
 public class RerollMaximum implements IConfigurable {
 
     private final ConfigurationFile configurationFile;
-    private int rerollMaximum;
+    private int rerollMaximumConf;
 
     public RerollMaximum(ConfigurationFile configurationFile) {
         this.configurationFile = configurationFile;
@@ -16,7 +16,7 @@ public class RerollMaximum implements IConfigurable {
     @Override
     public void load() {
         final String path = "reroll_maximum";
-        rerollMaximum = configurationFile.getConfig().getInt(path);
+        rerollMaximumConf = configurationFile.getConfig().getInt(path);
     }
 
     private static RerollMaximum getInstance() {
@@ -24,6 +24,6 @@ public class RerollMaximum implements IConfigurable {
     }
 
     public static int getMaxRerolls() {
-        return getInstance().rerollMaximum;
+        return getInstance().rerollMaximumConf;
     }
 }
