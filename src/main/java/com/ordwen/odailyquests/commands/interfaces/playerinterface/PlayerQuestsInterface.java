@@ -79,6 +79,9 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
     /* items with placeholders */
     private final Map<Integer, ItemStack> papiItems = new HashMap<>();
 
+    /* items behavior */
+    private final Set<Integer> closeOnClickSlots = new HashSet<>();
+
     /* init variables */
     private String interfaceName;
     private Inventory playerQuestsInventoryBase;
@@ -213,6 +216,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
         playerCommandsItems.clear();
         consoleCommandsItems.clear();
         papiItems.clear();
+        closeOnClickSlots.clear();
 
         /* load player head */
         playerHead.load();
@@ -294,7 +298,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      *     <li>Material detection (vanilla, namespaced, custom head)</li>
      *     <li>Meta loading (name, lore, CMD, custom_model_data, item_model)</li>
      *     <li>Flags parsing</li>
-     *     <li>Type-specific behaviour (FILL, CLOSE, COMMAND...)</li>
+     *     <li>Type-specific behavior (FILL, CLOSE, COMMAND...)</li>
      *     <li>Placeholder detection for dynamic updates</li>
      * </ul>
      * <p>
@@ -343,6 +347,15 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
 
             /* add loaded items into base inventory */
             addIntoBaseInventory(element, slots, item);
+
+            /* close on click (optional) */
+            if (elementSection.getBoolean("close_on_click", false)) {
+                for (int slot : slots) {
+                    if (slot > 0 && slot <= size) {
+                        closeOnClickSlots.add(slot - 1); // internal is 0-based
+                    }
+                }
+            }
         }
     }
 
@@ -934,5 +947,15 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      */
     public String getCompleteGetTypeStr() {
         return completeGetTypeStr;
+    }
+
+    /**
+     * Returns whether the clicked slot should close the inventory after handling the action.
+     *
+     * @param slot the raw inventory slot index (0-based)
+     * @return true if the inventory must be closed
+     */
+    public boolean shouldCloseOnClick(int slot) {
+        return closeOnClickSlots.contains(slot);
     }
 }

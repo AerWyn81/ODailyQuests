@@ -251,6 +251,9 @@ public class InventoryClickListener extends ClickableChecker implements Listener
             for (String cmd : playerQuestsInterface.getPlayerCommands(slot)) {
                 Bukkit.getServer().dispatchCommand(player, cmd);
             }
+            if (playerQuestsInterface.shouldCloseOnClick(slot)) {
+                player.closeInventory();
+            }
             return true;
         }
         return false;
@@ -260,6 +263,9 @@ public class InventoryClickListener extends ClickableChecker implements Listener
         if (playerQuestsInterface.isConsoleCommandItem(slot)) {
             for (String cmd : playerQuestsInterface.getConsoleCommands(slot)) {
                 ODailyQuests.morePaperLib.scheduling().globalRegionalScheduler().run(() -> Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), cmd.replace("%player%", player.getName())));
+            }
+            if (playerQuestsInterface.shouldCloseOnClick(slot)) {
+                player.closeInventory();
             }
             return true;
         }
