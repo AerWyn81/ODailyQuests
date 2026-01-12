@@ -53,6 +53,9 @@ import space.arim.morepaperlib.MorePaperLib;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+/**
+ * Main class of the ODailyQuests plugin.
+ */
 public final class ODailyQuests extends JavaPlugin {
 
     public static ODailyQuests INSTANCE;
@@ -72,12 +75,18 @@ public final class ODailyQuests extends JavaPlugin {
 
     boolean isServerStopping;
 
+    /**
+     * Plugin load logic.
+     */
     @Override
     public void onLoad() {
         INSTANCE = this;
         API = new ODailyQuestsAPI();
     }
 
+    /**
+     * Plugin startup logic.
+     */
     @Override
     public void onEnable() {
         PluginLogger.info("Plugin is starting...");
@@ -176,6 +185,9 @@ public final class ODailyQuests extends JavaPlugin {
         checkForSpigotUpdate();
     }
 
+    /**
+     * Register all available quest types.
+     */
     private void registerQuestTypes() {
         /* Register quest types */
         final QuestTypeRegistry questTypeRegistry = API.getQuestTypeRegistry();
@@ -229,6 +241,9 @@ public final class ODailyQuests extends JavaPlugin {
         }
     }
 
+    /**
+     * Register all available subcommands.
+     */
     private void registerSubCommands() {
         final PlayerCommandRegistry playerCommandRegistry = API.getPlayerCommandRegistry();
 
@@ -260,6 +275,9 @@ public final class ODailyQuests extends JavaPlugin {
         API.getQuestTypeRegistry().registerQuestType(name, questClass);
     }
 
+    /**
+     * Plugin shutdown logic.
+     */
     @Override
     public void onDisable() {
         if (restartHandler != null) restartHandler.setServerStopping();
