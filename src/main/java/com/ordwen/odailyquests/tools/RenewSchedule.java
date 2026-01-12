@@ -8,25 +8,20 @@ import java.time.*;
 
 /**
  * Utility class responsible for computing quest renewal schedules.
- * <p>
- * It centralizes all time-based calculations related to renewals
+ *
+ * <p>It centralizes all time-based calculations related to renewals
  * (next execution, elapsed intervals, offline catch-up logic),
  * ensuring consistent behavior across the plugin.
- * </p>
  *
- * <p>
- * The schedule is defined by:
+ * <p>The schedule is defined by:
  * <ul>
  *   <li>a daily anchor time ({@link LocalTime})</li>
  *   <li>a renewal interval ({@link Duration})</li>
  *   <li>a time zone ({@link ZoneId})</li>
  *   <li>a timestamp mode (raw int, handled elsewhere)</li>
  * </ul>
- * </p>
  *
- * <p>
- * This class is stateless and cannot be instantiated.
- * </p>
+ * <p>This class is stateless and cannot be instantiated.
  */
 public final class RenewSchedule {
 
