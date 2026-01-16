@@ -843,12 +843,12 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
         } else if (shouldDisplayManualCompletionHint(progression)) {
             final String hint = getCompleteGetTypeStr();
             if (hint == null || hint.isEmpty()) {
-                final String formatted = QuestPlaceholders.replaceProgressPlaceholders(getProgressStr(), progression.getAdvancement(), progression.getRequiredAmount());
+                final String formatted = QuestPlaceholders.replaceProgressPlaceholders(getProgressStr(), progression.getAdvancement(), progression.getRequiredAmount(), progression.getRewardAmount());
                 return TextFormatter.format(player, formatted);
             }
             return TextFormatter.format(player, hint);
         } else {
-            final String formatted = QuestPlaceholders.replaceProgressPlaceholders(getProgressStr(), progression.getAdvancement(), progression.getRequiredAmount());
+            final String formatted = QuestPlaceholders.replaceProgressPlaceholders(getProgressStr(), progression.getAdvancement(), progression.getRequiredAmount(), progression.getRewardAmount());
             return TextFormatter.format(player, formatted);
         }
     }

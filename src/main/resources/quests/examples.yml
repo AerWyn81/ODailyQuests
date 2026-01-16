@@ -819,3 +819,24 @@ quests:
     reward:
       reward_type: MONEY
       amount: 1000
+  # example quest that is using a random reward amount range
+  33:
+    name: "&3Tame more wolves !"
+    menu_item: BONE
+    description:
+      - ""
+      - "&3Task:"
+      - " &3&l| &7Tame %required% wolves"
+      - ""
+      - "&3Progress:"
+      - " &3&l| %status%"
+      - ""
+      - "&3Reward:"
+      - " &3&l| &7%rewardAmount%$"
+      - ""
+    quest_type: TAME
+    required: WOLF
+    required_amount: 1
+    reward:
+      reward_type: MONEY
+      amount: "50-100"
