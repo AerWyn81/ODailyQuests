@@ -306,7 +306,11 @@ public class PAPIExpansion extends PlaceholderExpansion {
         final QuestCtx ctx = getQuestCtxByIndex(playerQuests, idx0.getAsInt()).orElse(null);
         if (ctx == null) return INVALID_INDEX;
 
-        return ctx.progression.isAchieved() ? playerQuestsInterface.getAchievedStr() : playerQuestsInterface.getNotAchievedStr();
+        final String achieved = TextFormatter.format(playerQuestsInterface.getAchievedStr());
+        final String notAchieved = TextFormatter.format(playerQuestsInterface.getNotAchievedStr());
+
+        final String raw = ctx.progression().isAchieved() ? achieved : notAchieved;
+        return (raw == null || raw.isBlank()) ? INVALID_PLACEHOLDER : raw;
     }
 
     /**
