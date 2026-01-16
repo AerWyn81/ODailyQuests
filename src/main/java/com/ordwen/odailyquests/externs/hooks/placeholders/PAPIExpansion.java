@@ -307,7 +307,7 @@ public class PAPIExpansion extends PlaceholderExpansion {
                             ? playerQuestsInterface.getAchievedStr()
                             : playerQuestsInterface.getProgressStr();
 
-                    return QuestPlaceholders.replaceProgressPlaceholders(template, progression.getAdvancement(), progression.getRequiredAmount());
+                    return QuestPlaceholders.replaceProgressPlaceholders(template, progression.getAdvancement(), progression.getRequiredAmount(), progression.getRewardAmount());
                 })
                 .orElse(INVALID_INDEX);
     }
@@ -410,7 +410,7 @@ public class PAPIExpansion extends PlaceholderExpansion {
                 .map(ctx -> {
                     final AbstractQuest quest = ctx.quest();
                     final Progression progression = playerQuests.getQuests().get(quest);
-                    return QuestPlaceholders.replaceProgressPlaceholders("%progressBar%", progression.getAdvancement(), progression.getRequiredAmount());
+                    return QuestPlaceholders.replaceProgressPlaceholders("%progressBar%", progression.getAdvancement(), progression.getRequiredAmount(), progression.getRewardAmount());
                 })
                 .orElse(INVALID_INDEX);
     }
