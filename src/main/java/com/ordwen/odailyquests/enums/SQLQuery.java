@@ -47,7 +47,7 @@ public enum SQLQuery {
                 ON DUPLICATE KEY UPDATE
                     `player_timestamp` = VALUES(`player_timestamp`),
                     `achieved_quests` = VALUES(`achieved_quests`),
-                    `total_achieved_quests` = VALUES(`total_achieved_quests`);
+                    `total_achieved_quests` = VALUES(`total_achieved_quests`),
                     `recent_rerolls` = VALUES(`recent_rerolls`);
             """),
 
