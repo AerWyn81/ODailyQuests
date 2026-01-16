@@ -39,6 +39,7 @@ repositories {
     maven { url = 'https://repo.oraxen.com/releases' }
     maven { url = 'https://repo.auxilor.io/repository/maven-public/' }
     maven { url = 'https://repo.fancyinnovations.com/releases' }
+    maven { url = 'https://repo.codemc.io/repository/EvenMoreFish/' }
     maven { url = 'https://jitpack.io' }
 }
 
@@ -90,6 +91,7 @@ dependencies {
     compileOnly 'io.lumine:MythicLib-dist:1.5.2-SNAPSHOT'
     compileOnly 'net.momirealms:custom-crops:3.6.29'
     compileOnly 'net.momirealms:custom-fishing:2.3.4'
+    compileOnly 'com.oheers.evenmorefish:even-more-fish-api:2.1.5'
     compileOnly('me.kryniowesegryderiusz:kgenerators-core:7.3') { exclude group: '*', module: '*' }
 
     /* auto restart */

@@ -8,6 +8,7 @@ import com.ordwen.odailyquests.configuration.integrations.OraxenEnabled;
 import com.ordwen.odailyquests.events.listeners.crate.CrateOpenListener;
 import com.ordwen.odailyquests.events.listeners.customs.CustomFurnaceExtractListener;
 import com.ordwen.odailyquests.events.listeners.entity.custom.stackers.RoseStackerListener;
+import com.ordwen.odailyquests.events.listeners.integrations.emf.EMFFishCaughtListener;
 import com.ordwen.odailyquests.events.listeners.integrations.npcs.CitizensHook;
 import com.ordwen.odailyquests.events.listeners.integrations.customsuite.CropBreakListener;
 import com.ordwen.odailyquests.events.listeners.integrations.customsuite.FishingLootSpawnListener;
@@ -94,6 +95,10 @@ public class EventsManager {
         pluginManager.registerEvents(new PlayerHarvestBlockListener(), oDailyQuests);
         pluginManager.registerEvents(new PlayerDropItemListener(), oDailyQuests);
         pluginManager.registerEvents(new StructureGrowListener(), oDailyQuests);
+
+        if (PluginUtils.isPluginEnabled("EvenMoreFish")) {
+            pluginManager.registerEvents(new EMFFishCaughtListener(), oDailyQuests);
+        }
 
         // inventory events
         pluginManager.registerEvents(new InventoryCloseListener(), oDailyQuests);

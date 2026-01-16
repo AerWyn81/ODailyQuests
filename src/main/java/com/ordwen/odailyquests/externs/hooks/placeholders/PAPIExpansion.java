@@ -72,6 +72,7 @@ public class PAPIExpansion extends PlaceholderExpansion {
         placeholdersList.add("%odailyquests_progress_");
         placeholdersList.add("%odailyquests_progressbar_");
         placeholdersList.add("%odailyquests_iscompleted_");
+        placeholdersList.add("%odailyquests_status_");
         placeholdersList.add("%odailyquests_requiredamount_");
         placeholdersList.add("%odailyquests_requireddisplayname_");
 
@@ -109,6 +110,7 @@ public class PAPIExpansion extends PlaceholderExpansion {
         placeholders.put("name", placeholder -> getPlayerQuestName(placeholder, player, playerQuests));
         placeholders.put("desc", placeholder -> getPlayerQuestDescription(placeholder, player, playerQuests));
         placeholders.put("iscompleted", placeholder -> isPlayerQuestCompleted(placeholder, playerQuests));
+        placeholders.put("status", placeholder -> getQuestStatus(placeholder, playerQuests));
         placeholders.put("requiredamount", placeholder -> getPlayerQuestRequiredAmount(placeholder, playerQuests));
         placeholders.put("requireddisplayname", placeholder -> getPlayerQuestDisplayName(placeholder, playerQuests));
 
@@ -268,7 +270,7 @@ public class PAPIExpansion extends PlaceholderExpansion {
             } catch (Exception e) {
                 return INVALID_INDEX;
             }
-            return TextFormatter.format(player, getQuestStatus(index0, playerQuests));
+            return TextFormatter.format(player, getQuestProgress(index0, playerQuests));
         }
 
         return INVALID_PLACEHOLDER;
@@ -291,6 +293,23 @@ public class PAPIExpansion extends PlaceholderExpansion {
     }
 
     /**
+     * Retrieves the status message for a quest.
+     *
+     * @param params       the placeholder parameters
+     * @param playerQuests the player's quests
+     * @return the quest status message or an error message
+     */
+    private String getQuestStatus(String params, PlayerQuests playerQuests) {
+        final OptionalInt idx0 = parseSingleIndex0(params);
+        if (idx0.isEmpty()) return INVALID_INDEX;
+
+        final QuestCtx ctx = getQuestCtxByIndex(playerQuests, idx0.getAsInt()).orElse(null);
+        if (ctx == null) return INVALID_INDEX;
+
+        return ctx.progression.isAchieved() ? playerQuestsInterface.getAchievedStr() : playerQuestsInterface.getNotAchievedStr();
+    }
+
+    /**
      * Returns the formatted status message for a quest.
      * <p>
      * The message differs depending on whether the quest is completed or still in progress.
@@ -299,7 +318,7 @@ public class PAPIExpansion extends PlaceholderExpansion {
      * @param playerQuests the player's quests
      * @return the formatted status message or an error message
      */
-    private String getQuestStatus(int index0, PlayerQuests playerQuests) {
+    private String getQuestProgress(int index0, PlayerQuests playerQuests) {
         return getQuestCtxByIndex(playerQuests, index0)
                 .map(ctx -> {
                     final Progression progression = ctx.progression();
