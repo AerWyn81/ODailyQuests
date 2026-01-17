@@ -2,12 +2,10 @@ package com.ordwen.odailyquests.commands.admin.handlers;
 
 import com.ordwen.odailyquests.api.commands.admin.AdminCommandBase;
 import com.ordwen.odailyquests.commands.interfaces.playerinterface.PlayerQuestsInterface;
-import com.ordwen.odailyquests.enums.QuestsMessages;
 import com.ordwen.odailyquests.enums.QuestsPermissions;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
 
 import java.util.Collections;
 import java.util.List;
@@ -32,17 +30,9 @@ public class OpenCommand extends AdminCommandBase {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        if (Bukkit.getPlayerExact(args[1]) != null) {
-            final Player target = Bukkit.getPlayerExact(args[1]);
-            if (target != null) {
-                final Inventory inventory = playerQuestsInterface.getPlayerQuestsInterface(target);
-                if (inventory == null) {
-                    sender.sendMessage(QuestsMessages.ERROR_INVENTORY.toString());
-                    sender.sendMessage(QuestsMessages.CHECK_CONSOLE.toString());
-                    return;
-                }
-                target.openInventory(inventory);
-            } else invalidPlayer(sender);
+        final Player target = Bukkit.getPlayer(args[1]);
+        if (target != null) {
+            openTargetInventory(playerQuestsInterface, sender, args, target);
         } else help(sender);
     }
 

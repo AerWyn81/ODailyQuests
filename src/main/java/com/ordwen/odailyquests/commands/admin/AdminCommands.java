@@ -30,7 +30,8 @@ public class AdminCommands implements CommandExecutor {
         if (args.length == 1) {
             if (args[0].equals("reload")) {
                 plugin.getReloadService().reload();
-                sender.sendMessage(QuestsMessages.PLUGIN_RELOADED.toString());
+                final String msg = QuestsMessages.PLUGIN_RELOADED.toString();
+                if (msg != null) sender.sendMessage(msg);
             } else help(sender);
         } else if (args.length >= 2) {
             final AdminCommand handler = adminCommandRegistry.getCommandHandler(args[0]);

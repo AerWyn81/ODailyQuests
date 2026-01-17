@@ -26,11 +26,16 @@ public class ConvertCommand extends AdminCommandBase {
     public void execute(CommandSender sender, String[] args) {
         if (args.length == 3) {
             if (!this.convert(args[1], args[2])) {
-                sender.sendMessage(QuestsMessages.CONVERSION_FAILED.toString());
+                final String msg = QuestsMessages.CONVERSION_FAILED.toString();
+                if (msg != null) sender.sendMessage(msg);
             } else {
-                sender.sendMessage(QuestsMessages.CONVERSION_SUCCESS.toString());
+                final String msg = QuestsMessages.CONVERSION_SUCCESS.toString();
+                if (msg != null) sender.sendMessage(msg);
             }
-        } else sender.sendMessage(QuestsMessages.ADMIN_HELP.toString());
+        } else {
+            final String msg = QuestsMessages.ADMIN_HELP.toString();
+            if (msg != null) sender.sendMessage(msg);
+        }
     }
 
     /**

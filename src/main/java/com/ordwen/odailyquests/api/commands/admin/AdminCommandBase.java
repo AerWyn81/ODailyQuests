@@ -1,9 +1,11 @@
 package com.ordwen.odailyquests.api.commands.admin;
 
+import com.ordwen.odailyquests.commands.interfaces.playerinterface.PlayerQuestsInterface;
 import com.ordwen.odailyquests.enums.QuestsMessages;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 
 /**
  * This is an abstract base class for admin commands in the O'DailyQuests plugin.
@@ -53,8 +55,41 @@ public abstract class AdminCommandBase extends AdminMessages implements AdminCom
         try {
             return Integer.parseInt(arg);
         } catch (NumberFormatException e) {
-            sender.sendMessage(QuestsMessages.INVALID_QUEST_INDEX.toString());
+            final String msg = QuestsMessages.INVALID_QUEST_INDEX.toString();
+            if (msg != null) sender.sendMessage(msg);
             return -1;
         }
+    }
+
+    /**
+     * Opens the quest inventory interface of a target player for the executing player.
+     * <p>
+     * If the target player is not found or if there is an error retrieving the inventory,
+     * appropriate error messages are sent to the executing player.
+     *
+     * @param playerQuestsInterface the player quests interface handler
+     * @param sender the command sender (used to send feedback)
+     * @param args   the command arguments, where args[1] is expected to be the target player's name
+     * @param player the executing player who will view the target's inventory
+     */
+    public void openTargetInventory(PlayerQuestsInterface playerQuestsInterface, CommandSender sender, String[] args, Player player) {
+        final Player target = Bukkit.getPlayerExact(args[1]);
+
+        if (target == null) {
+            invalidPlayer(sender);
+            return;
+        }
+
+        final Inventory inventory = playerQuestsInterface.getPlayerQuestsInterface(target);
+        if (inventory == null) {
+            String msg = QuestsMessages.ERROR_INVENTORY.toString();
+            if (msg != null) player.sendMessage(msg);
+
+            msg = QuestsMessages.CHECK_CONSOLE.toString();
+            if (msg != null) player.sendMessage(msg);
+            return;
+        }
+
+        player.openInventory(inventory);
     }
 }

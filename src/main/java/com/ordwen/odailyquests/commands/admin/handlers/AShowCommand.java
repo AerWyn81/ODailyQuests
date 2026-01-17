@@ -4,10 +4,8 @@ import com.ordwen.odailyquests.api.commands.admin.AdminCommandBase;
 import com.ordwen.odailyquests.commands.interfaces.playerinterface.PlayerQuestsInterface;
 import com.ordwen.odailyquests.enums.QuestsMessages;
 import com.ordwen.odailyquests.enums.QuestsPermissions;
-import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
 
 import java.util.Collections;
 import java.util.List;
@@ -33,22 +31,7 @@ public class AShowCommand extends AdminCommandBase {
     @Override
     public void execute(CommandSender sender, String[] args) {
         if (sender instanceof Player player) {
-            final Player target = Bukkit.getPlayerExact(args[1]);
-
-            if (target == null) {
-                invalidPlayer(sender);
-                return;
-            }
-
-            final Inventory inventory = playerQuestsInterface.getPlayerQuestsInterface(target);
-            if (inventory == null) {
-                player.sendMessage(QuestsMessages.ERROR_INVENTORY.toString());
-                player.sendMessage(QuestsMessages.CHECK_CONSOLE.toString());
-                return;
-            }
-
-            player.openInventory(inventory);
-
+            openTargetInventory(playerQuestsInterface, sender, args, player);
         } else {
             final String msg = QuestsMessages.PLAYER_ONLY.toString();
             if (msg != null) sender.sendMessage(msg);

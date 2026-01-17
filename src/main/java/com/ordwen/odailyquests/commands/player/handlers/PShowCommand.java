@@ -62,7 +62,8 @@ public class PShowCommand extends PlayerCommandBase {
 
         final Inventory inventory = questsInterfaces.getInterfaceFirstPage(category, player);
         if (inventory == null) {
-            player.sendMessage(QuestsMessages.CONFIGURATION_ERROR.toString());
+            final String msg = QuestsMessages.CONFIGURATION_ERROR.toString();
+            if (msg != null) player.sendMessage(msg);
             return;
         }
 

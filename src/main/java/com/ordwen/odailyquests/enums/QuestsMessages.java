@@ -115,7 +115,7 @@ public enum QuestsMessages {
     public String toString() {
         String msg = MessagesFile.getInstance().get(this.path, defaultMessage);
 
-        if (msg.trim().isEmpty()) return "";
+        if (msg.trim().isEmpty()) return null;
         else return TextFormatter.format(null, Prefix.getPrefix() + msg);
     }
 

@@ -38,7 +38,8 @@ public abstract class AbstractNpcHook implements Listener {
         if (player.hasPermission(PERMISSION_PREFIX + category)) {
             final Inventory inv = interfacesManager.getQuestsInterfaces().getInterfaceFirstPage(category, player);
             if (inv == null) {
-                player.sendMessage(QuestsMessages.CONFIGURATION_ERROR.toString());
+                final String msg = QuestsMessages.CONFIGURATION_ERROR.toString();
+                if (msg != null) player.sendMessage(msg);
                 return;
             }
             player.openInventory(inv);

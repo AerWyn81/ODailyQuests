@@ -43,8 +43,12 @@ public class MeCommand extends PlayerCommandBase {
     private void openInventory(Player player) {
         final Inventory inventory = playerQuestsInterface.getPlayerQuestsInterface(player);
         if (inventory == null) {
-            player.sendMessage(QuestsMessages.IMPOSSIBLE_TO_OPEN_INVENTORY.toString());
-            player.sendMessage(QuestsMessages.CONTACT_ADMIN.toString());
+            String msg = QuestsMessages.IMPOSSIBLE_TO_OPEN_INVENTORY.toString();
+            if (msg != null) player.sendMessage(msg);
+
+            msg = QuestsMessages.CONTACT_ADMIN.toString();
+            if (msg != null) player.sendMessage(msg);
+
             return;
         }
 

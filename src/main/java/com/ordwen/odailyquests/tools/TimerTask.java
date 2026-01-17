@@ -51,7 +51,7 @@ public class TimerTask {
         PluginLogger.info("It's a new day. The player quests are being reloaded.");
         for (Player player : Bukkit.getServer().getOnlinePlayers()) {
             final String msg = QuestsMessages.NEW_DAY.toString();
-            if (!msg.isEmpty()) player.sendMessage(msg);
+            if (msg != null) player.sendMessage(msg);
 
             final PlayerQuests playerQuests = ODailyQuestsAPI.getPlayerQuests(player.getName());
             final int totalAchievedQuests = playerQuests.getTotalAchievedQuests();
