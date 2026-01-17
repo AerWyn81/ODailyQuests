@@ -178,7 +178,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
 
         final Map<AbstractQuest, Progression> questsMap = playerQuests.getQuests();
 
-        final Inventory playerQuestsInventoryIndividual = Bukkit.createInventory(null, size, TextFormatter.format(player, interfaceName));
+        final Inventory playerQuestsInventoryIndividual = Bukkit.createInventory(new PlayerQuestsHolder(), size, TextFormatter.format(player, interfaceName));
         playerQuestsInventoryIndividual.setContents(playerQuestsInventoryBase.getContents());
 
         if (!papiItems.isEmpty()) {
@@ -857,16 +857,6 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
 
     private boolean shouldDisplayManualCompletionHint(Progression progression) {
         return CompleteOnlyOnClick.isEnabled() && !progression.isAchieved() && progression.getAdvancement() >= progression.getRequiredAmount();
-    }
-
-    /**
-     * Get the corresponding text for the interface name.
-     *
-     * @param player player to get the interface name.
-     * @return the interface name.
-     */
-    public String getInterfaceName(Player player) {
-        return TextFormatter.format(player, interfaceName);
     }
 
     /**

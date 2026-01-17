@@ -1,6 +1,7 @@
 package com.ordwen.odailyquests.events.listeners.inventory;
 
 import com.ordwen.odailyquests.ODailyQuests;
+import com.ordwen.odailyquests.commands.interfaces.playerinterface.PlayerQuestsHolder;
 import com.ordwen.odailyquests.commands.interfaces.playerinterface.PlayerQuestsInterface;
 import com.ordwen.odailyquests.configuration.essentials.CustomFurnaceResults;
 import com.ordwen.odailyquests.configuration.essentials.Debugger;
@@ -43,8 +44,9 @@ public class InventoryClickListener extends ClickableChecker implements Listener
         }
 
         boolean isPlayerInterface = false;
-        final String inventoryName = event.getView().getTitle();
-        if (inventoryName.startsWith(playerQuestsInterface.getInterfaceName(player))) {
+
+        final Inventory top = event.getView().getTopInventory();
+        if (top.getHolder() instanceof PlayerQuestsHolder) {
             isPlayerInterface = true;
             event.setCancelled(true);
         }
