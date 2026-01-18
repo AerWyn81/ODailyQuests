@@ -27,7 +27,6 @@ public abstract class AbstractNpcHook implements Listener {
      *   <li>opens the first page of a category interface (category NPC)</li>
      * </ul>
      * If the player lacks the required permission, a no-permission message is sent.
-     * </p>
      *
      * @param npcName the clicked NPC name
      * @param player  the interacting player

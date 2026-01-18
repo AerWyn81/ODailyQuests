@@ -40,7 +40,6 @@ import java.util.Map;
  *
  * <p>
  * This class cannot be instantiated and exposes only static methods.
- * </p>
  */
 public class RewardManager {
 

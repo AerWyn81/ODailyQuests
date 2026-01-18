@@ -84,7 +84,6 @@ public class AdminCommands implements CommandExecutor {
      * <p>
      * If the subcommand is unknown or the sender lacks permission,
      * an appropriate message is sent.
-     * </p>
      *
      * @param sender the command sender
      * @param args   full command arguments

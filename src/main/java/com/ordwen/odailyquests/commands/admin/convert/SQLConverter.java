@@ -23,7 +23,6 @@ public abstract class SQLConverter {
      *   <li>all quest progressions</li>
      * </ul>
      * Then it builds a {@link PlayerQuests} instance and persists it through the provided {@link SQLManager}.
-     * </p>
      *
      * @param progressionFile the YAML progression configuration
      * @param sqlManager      the SQL manager used to save progressions

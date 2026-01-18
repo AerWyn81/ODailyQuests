@@ -23,7 +23,6 @@ import org.bukkit.entity.Player;
  * If the condition matches, the quest is completed. If the condition cannot be
  * evaluated due to invalid input format, or if it does not match, the player
  * receives appropriate feedback messages defined by the quest configuration.
- * </p>
  */
 public class PlaceholderQuestCommand extends QuestCommand<PlaceholderQuest> {
 
