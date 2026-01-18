@@ -88,6 +88,8 @@ public enum QuestsMessages {
 
     PLACEHOLDER_API_NOT_ENABLED("placeholder_api_not_enabled", "&cThe PlaceholderAPI plugin is not enabled. Please inform an administrator."),
     PLACEHOLDER_NOT_NUMBER("placeholder_not_number", "&cThe placeholder %placeholder% is not a number. Please inform an administrator."),
+    PLACEHOLDER_STATUS_ACHIEVED("placeholder_status_achieved", "&a✓"),
+    PLACEHOLDER_STATUS_NOT_ACHIEVED("placeholder_status_not_achieved", "&c✗"),
 
     CANNOT_COMPLETE_QUEST_WITH_OFF_HAND("cannot_complete_quest_with_off_hand", "&cAll required items must be in your inventory, not in your off hand."),
     CANNOT_REROLL_IF_ACHIEVED("cannot_reroll_if_achieved", "&cYou can't reroll a quest that you have already achieved!"),

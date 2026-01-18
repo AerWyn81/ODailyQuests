@@ -87,7 +87,6 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
     private Inventory playerQuestsInventoryBase;
     private int size;
     private String achievedStr;
-    private String notAchievedStr;
     private String statusStr;
     private String progressStr;
     private String completeGetTypeStr;
@@ -235,7 +234,6 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
 
         /* load all texts */
         achievedStr = interfaceConfig.getString(".achieved");
-        notAchievedStr = interfaceConfig.getString(".not_achieved");
         statusStr = interfaceConfig.getString(".status");
         progressStr = interfaceConfig.getString(".progress");
         completeGetTypeStr = interfaceConfig.getString(".complete_get_type");
@@ -941,15 +939,6 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      */
     public String getAchievedStr() {
         return achievedStr;
-    }
-
-    /**
-     * Get the not achieved string defined in the configuration.
-     *
-     * @return the not achieved string.
-     */
-    public String getNotAchievedStr() {
-        return notAchievedStr;
     }
 
     /**
