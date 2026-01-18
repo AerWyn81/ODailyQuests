@@ -12,6 +12,8 @@ public class RestartHandler {
     }
 
     public void setServerStopping() {
+        if (plugin.isServerStopping()) return;
+
         PluginLogger.warn("Server is stopping. The datas will be saved in synchronous mode.");
         PluginLogger.warn("If you think this is a mistake, please contact the developer!");
         plugin.setServerStopping(true);
