@@ -532,24 +532,39 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
                 item.setItemMeta(baseMeta);
                 closeItems.add(item);
             }
-            case PLAYER_COMMAND -> {
-                if (baseMeta == null) return;
-                final List<String> commands = elementSection.getStringList("commands");
-                item.setItemMeta(baseMeta);
+            case PLAYER_COMMAND -> registerCommandItems(
+                    item, baseMeta, elementSection, slots, playerCommandsItems
+            );
 
-                for (int slot : slots) {
-                    playerCommandsItems.put(slot - 1, commands);
-                }
-            }
-            case CONSOLE_COMMAND -> {
-                if (baseMeta == null) return;
-                final List<String> commands = elementSection.getStringList("commands");
-                item.setItemMeta(baseMeta);
+            case CONSOLE_COMMAND -> registerCommandItems(
+                    item, baseMeta, elementSection, slots, consoleCommandsItems
+            );
+        }
+    }
 
-                for (int slot : slots) {
-                    consoleCommandsItems.put(slot - 1, commands);
-                }
-            }
+    /**
+     * Registers command items into their respective maps.
+     *
+     * @param item           the item stack
+     * @param baseMeta       the item's meta
+     * @param elementSection the configuration section of the element
+     * @param slots          the slots where the item should be added
+     * @param targetMap      the target map to register commands into
+     */
+    private void registerCommandItems(
+            ItemStack item,
+            ItemMeta baseMeta,
+            ConfigurationSection elementSection,
+            List<Integer> slots,
+            Map<Integer, List<String>> targetMap
+    ) {
+        if (baseMeta == null) return;
+
+        final List<String> commands = elementSection.getStringList("commands");
+        item.setItemMeta(baseMeta);
+
+        for (int slot : slots) {
+            targetMap.put(slot - 1, commands);
         }
     }
 
@@ -714,9 +729,9 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
      * If category-based slots are configured, the next available slot for the quest's category is returned.
      * Otherwise, the legacy quest-index mapping is used.
      *
-     * @param categoryName   category of the quest.
-     * @param questIndex     index of the quest in the player's list.
-     * @param categoryUsage  tracker storing how many slots are already consumed per category for this inventory.
+     * @param categoryName  category of the quest.
+     * @param questIndex    index of the quest in the player's list.
+     * @param categoryUsage tracker storing how many slots are already consumed per category for this inventory.
      * @return list of slot indices (1-based), or {@code null} if no slot is configured.
      */
     private @Nullable List<Integer> resolveSlotsForQuest(String categoryName, int questIndex, Map<String, Integer> categoryUsage) {

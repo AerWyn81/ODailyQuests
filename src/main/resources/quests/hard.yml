@@ -283,7 +283,7 @@ quests:
       - " &3&l| &7750$"
       - ""
     quest_type: LAUNCH
-    required: WIND_CHARGE
+    required: FIRE_CHARGE
     required_amount: 4
     reward:
       reward_type: MONEY
