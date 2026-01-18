@@ -490,7 +490,7 @@ public class PlayerQuestsInterface extends InterfaceItemGetter {
         if (text == null) {
             return false;
         }
-        final Pattern pattern = Pattern.compile("%\\w+%");
+        final Pattern pattern = Pattern.compile("%[^%\\s]+%");
         return pattern.matcher(text).find();
     }
 
