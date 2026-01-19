@@ -2,7 +2,7 @@ package com.ordwen.odailyquests.externs.hooks.placeholders;
 
 import com.ordwen.odailyquests.api.ODailyQuestsAPI;
 import com.ordwen.odailyquests.commands.interfaces.playerinterface.PlayerQuestsInterface;
-import com.ordwen.odailyquests.enums.QuestsMessages;
+import com.ordwen.odailyquests.configuration.integrations.PapiPlaceholders;
 import com.ordwen.odailyquests.quests.categories.CategoriesLoader;
 import com.ordwen.odailyquests.quests.categories.Category;
 import com.ordwen.odailyquests.quests.player.PlayerQuests;
@@ -307,11 +307,8 @@ public class PAPIExpansion extends PlaceholderExpansion {
         final QuestCtx ctx = getQuestCtxByIndex(playerQuests, idx0.getAsInt()).orElse(null);
         if (ctx == null) return INVALID_INDEX;
 
-        final String achieved = QuestsMessages.PLACEHOLDER_STATUS_ACHIEVED.toString();
-        final String notAchieved = QuestsMessages.PLACEHOLDER_STATUS_NOT_ACHIEVED.toString();
-
-        final String raw = ctx.progression().isAchieved() ? achieved : notAchieved;
-        return (raw == null || raw.isBlank()) ? INVALID_PLACEHOLDER : raw;
+        final String raw = PapiPlaceholders.parseStatus(ctx.progression().isAchieved());
+        return (raw == null || raw.isBlank()) ? INVALID_PLACEHOLDER : TextFormatter.format(raw);
     }
 
     /**

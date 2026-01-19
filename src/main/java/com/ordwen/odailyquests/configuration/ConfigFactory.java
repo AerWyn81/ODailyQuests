@@ -68,6 +68,7 @@ public class ConfigFactory {
         configs.put(TakeItem.class, new TakeItem(configurationFile));
         configs.put(CompleteOnlyOnClick.class, new CompleteOnlyOnClick(configurationFile));
         configs.put(CommandAliases.class, new CommandAliases(configurationFile));
+        configs.put(PapiPlaceholders.class, new PapiPlaceholders(configurationFile));
 
         // rewards
         configs.put(CategoriesRewards.class, new CategoriesRewards(configurationFile));
