@@ -1,5 +1,7 @@
 package com.ordwen.odailyquests.reload;
 
+import com.ordwen.odailyquests.api.events.ODQReloadEvent;
+
 /**
  * Represents the different phases of an ODailyQuests reload cycle.
  * <p>

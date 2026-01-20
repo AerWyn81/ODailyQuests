@@ -1,6 +1,7 @@
 package com.ordwen.odailyquests.reload;
 
 import com.ordwen.odailyquests.ODailyQuests;
+import com.ordwen.odailyquests.api.events.ODQReloadEvent;
 import com.ordwen.odailyquests.configuration.ConfigFactory;
 import com.ordwen.odailyquests.configuration.essentials.Debugger;
 import com.ordwen.odailyquests.configuration.essentials.ReloadMessage;

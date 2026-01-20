@@ -1,6 +1,7 @@
-package com.ordwen.odailyquests.reload;
+package com.ordwen.odailyquests.api.events;
 
 import com.ordwen.odailyquests.ODailyQuests;
+import com.ordwen.odailyquests.reload.ReloadPhase;
 import com.ordwen.odailyquests.tools.PluginLogger;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
