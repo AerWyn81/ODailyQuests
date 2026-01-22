@@ -48,7 +48,7 @@ public class DropQueuePushListener extends PlayerProgressor implements Listener 
         }
 
         // check if the dropped item is a crop
-        if (isAgeableAndFullyGrown(event, data, dataMaterial, drops)) return;
+        if (isAgeableAndHandleOrBlock(event, data, dataMaterial, drops)) return;
 
         // check if the block have been placed by the player
         if (isPlayerPlacedBlock(currentState.getBlock(), dataMaterial)) return;
@@ -61,30 +61,30 @@ public class DropQueuePushListener extends PlayerProgressor implements Listener 
     }
 
     /**
-     * Check if the block is an ageable crop and if it is fully grown.
+     * If the block is {@link Ageable}, either handles drops (when mature) or blocks progression (when not mature).
      *
-     * @param event  the event that triggered the listener
-     * @param data   the block data of the broken block
+     * @param event        the event that triggered the listener
+     * @param data         the block data of the broken block
      * @param dataMaterial the material of the block data
-     * @param drops  list of dropped items
-     * @return true if the block is an ageable crop and fully grown, false otherwise
+     * @param drops        list of dropped items
+     * @return true if the block is ageable (mature or not) and the caller must stop processing, false otherwise
      */
-    private boolean isAgeableAndFullyGrown(DropQueuePushEvent event, BlockData data, Material dataMaterial, Collection<? extends ItemStack> drops) {
-        if (data instanceof Ageable ageable) {
-            Debugger.write("DropQueuePushListener: onBlockDropItemEvent ageable block: " + dataMaterial + ".");
-
-            if (ageable.getAge() == ageable.getMaximumAge()) {
-                Debugger.write("DropQueuePushListener: onBlockDropItemEvent ageable block is mature.");
-                handleDrops(event, drops);
-
-                return true;
-            } else {
-                Debugger.write("DropQueuePushListener: onBlockDropItemEvent ageable block is not mature.");
-            }
+    private boolean isAgeableAndHandleOrBlock(DropQueuePushEvent event, BlockData data, Material dataMaterial, Collection<? extends ItemStack> drops) {
+        if (!(data instanceof Ageable ageable)) {
+            return false; // not ageable => let the normal flow handle drops
         }
-        return false;
-    }
 
+        Debugger.write("DropQueuePushListener: ageable block: " + dataMaterial + " age=" + ageable.getAge() + "/" + ageable.getMaximumAge());
+
+        if (ageable.getAge() < ageable.getMaximumAge()) {
+            Debugger.write("DropQueuePushListener: ageable block is not mature, blocking drop handling.");
+            return true; // ageable but not mature => stop here, don't progress quests
+        }
+
+        Debugger.write("DropQueuePushListener: ageable block is mature, handling drops.");
+        handleDrops(event, drops);
+        return true; // ageable and mature => handled, stop here to avoid double handling
+    }
     /**
      * Handle the dropped items and update the player progression.
      *

@@ -54,7 +54,7 @@ public class BlockDropItemListener extends PlayerProgressor implements Listener 
         }
 
         // check if the dropped item is a crop
-        if (isAgeableAndFullyGrown(event, data, dataMaterial, player, drops)) return;
+        if (isAgeableAndHandleOrBlock(event, data, dataMaterial, player, drops)) return;
 
         // check if the block have been placed by the player
         if (isPlayerPlacedBlock(event.getBlock(), dataMaterial)) return;
@@ -67,32 +67,40 @@ public class BlockDropItemListener extends PlayerProgressor implements Listener 
     }
 
     /**
-     * Check if the ageable block is fully grown and handle the drops accordingly.
+     * Handles ageable blocks (crops) to avoid quest progression when they are not fully grown.
+     *
+     * <p>
+     * If the broken block is {@link Ageable} and not mature, this method blocks further processing.
+     * If it is mature, drops are handled here.
+     * Non-ageable blocks (and vertical plants) are ignored and handled by the normal flow.
      *
      * @param event        the event that triggered the listener
      * @param data         the block data of the broken block
-     * @param dataMaterial the material of the block data
-     * @param player       involved player in the event
-     * @param drops        list of dropped items
-     * @return true if the block is ageable and fully grown, false otherwise
+     * @param dataMaterial the material of the broken block
+     * @param player       the player who broke the block
+     * @param drops        list of dropped {@link Item} entities
+     * @return {@code true} if processing should stop, {@code false} otherwise
      */
-    private boolean isAgeableAndFullyGrown(Event event, BlockData data, Material dataMaterial, Player player, List<Item> drops) {
+    private boolean isAgeableAndHandleOrBlock(Event event, BlockData data, Material dataMaterial, Player player, List<Item> drops) {
         if (isVerticalPlant(dataMaterial)) {
-            Debugger.write("BlockDropItemListener: onBlockDropItemEvent vertical plant detected, skipping ageable check.");
-            return false;
+            Debugger.write("BlockDropItemListener: vertical plant detected, skipping ageable check.");
+            return false; // skip vertical plants
         }
 
-        if (data instanceof Ageable ageable) {
-            Debugger.write("BlockDropItemListener: onBlockDropItemEvent ageable block: " + dataMaterial + ".");
-
-            if (ageable.getAge() == ageable.getMaximumAge()) {
-                Debugger.write("BlockDropItemListener: onBlockDropItemEvent ageable block is mature.");
-                handleDrops(event, player, drops);
-
-                return true;
-            }
+        if (!(data instanceof Ageable ageable)) {
+            return false; // not ageable => let the normal flow handle drops
         }
-        return false;
+
+        Debugger.write("BlockDropItemListener: ageable block: " + dataMaterial + " age=" + ageable.getAge() + "/" + ageable.getMaximumAge());
+
+        if (ageable.getAge() < ageable.getMaximumAge()) {
+            Debugger.write("BlockDropItemListener: ageable not mature -> blocking progression.");
+            return true; // ageable but not mature => stop here, don't progress quests
+        }
+
+        Debugger.write("BlockDropItemListener: ageable mature -> handling drops.");
+        handleDrops(event, player, drops); // ageable and mature => handled, stop here to avoid double handling
+        return true;
     }
 
     /**
