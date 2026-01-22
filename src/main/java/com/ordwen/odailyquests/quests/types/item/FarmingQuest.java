@@ -10,6 +10,7 @@ import com.ordwen.odailyquests.tools.PluginUtils;
 import com.willfp.eco.core.events.DropQueuePushEvent;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -72,19 +73,19 @@ public class FarmingQuest extends ItemQuest {
     @Override
     public boolean canProgress(Event provided, Progression progression) {
         if (provided instanceof PlayerHarvestBlockEvent event) {
-            return checkBlockAndProgress(event.getPlayer(), event.getHarvestedBlock(), progression, false, current);
+            return checkBlockAndProgress(event.getPlayer(), event.getHarvestedBlock(), event.getHarvestedBlock().getState(), progression, false, current);
         }
 
         if (provided instanceof BlockDropItemEvent event) {
-            return checkBlockAndProgress(event.getPlayer(), event.getBlock(), progression, true, current);
+            return checkBlockAndProgress(event.getPlayer(), event.getBlock(), event.getBlockState(), progression, true, current);
         }
 
         if (provided instanceof BlockBreakEvent event) {
-            return checkBlockAndProgress(event.getPlayer(), event.getBlock(), progression, false, null);
+            return checkBlockAndProgress(event.getPlayer(), event.getBlock(), event.getBlock().getState(), progression, false, null);
         }
 
         if (PluginUtils.isPluginEnabled("eco") && provided instanceof DropQueuePushEvent event) {
-            return checkBlockAndProgress(event.getPlayer(), DropQueuePushListener.getCurrentState().getBlock(), progression, false, current);
+            return checkBlockAndProgress(event.getPlayer(), DropQueuePushListener.getCurrentState().getBlock(), DropQueuePushListener.getCurrentState(), progression, false, current);
         }
 
         return false;
@@ -100,13 +101,14 @@ public class FarmingQuest extends ItemQuest {
      *
      * @param player           the player who triggered the event
      * @param block            the block involved in the event
+     * @param state            the state of the block, before it became broken or harvested
      * @param progression      the player's progression state
      * @param rejectContainers true to reject container blocks (e.g., chests)
      * @param referenceItem    optional predefined {@link ItemStack} to use for comparison; if {@code null}, the block's material will be used
      * @return true if the block passes all checks and matches the quest item; false otherwise
      */
-    private boolean checkBlockAndProgress(Player player, Block block, Progression progression, boolean rejectContainers, @Nullable ItemStack referenceItem) {
-        if (rejectContainers && block.getState() instanceof InventoryHolder) {
+    private boolean checkBlockAndProgress(Player player, Block block, BlockState state, Progression progression, boolean rejectContainers, @Nullable ItemStack referenceItem) {
+        if (rejectContainers && state instanceof InventoryHolder) {
             Debugger.write("FarmingQuest:canProgress: Block is a container.");
             return false;
         }
